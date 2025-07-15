@@ -20,6 +20,14 @@ const DEFAULT_DIR = path.join(os.homedir(), 'Desktop', 'Otak');
 // 許可されたディレクトリ
 let allowedDirectory: string = DEFAULT_DIR;
 
+// チルダ展開を処理する関数
+function expandTilde(filepath: string): string {
+  if (filepath.startsWith('~/') || filepath === '~') {
+    return filepath.replace('~', os.homedir());
+  }
+  return filepath;
+}
+
 // パスが許可されたディレクトリ内にあるかチェック
 function isPathAllowed(targetPath: string): boolean {
   const resolvedPath = path.resolve(targetPath);
@@ -53,7 +61,7 @@ async function initialize() {
     try {
       const config: Config = JSON.parse(args[0]);
       if (config.allowedDirectory) {
-        allowedDirectory = path.resolve(config.allowedDirectory);
+        allowedDirectory = path.resolve(expandTilde(config.allowedDirectory));
       }
     } catch (error) {
       console.error('Invalid configuration:', error);

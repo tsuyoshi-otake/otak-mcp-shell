@@ -45,17 +45,17 @@ JSON形式の引数で `allowedDirectory` を指定することで、アクセ�
 
 ```bash
 # グローバルインストール
-npm install -g otak-mcp-filesystem
+npm install -g otak-otak-mcp-filesystem
 
 # または一回だけ実行
-npx otak-mcp-filesystem
+npx otak-otak-mcp-filesystem
 ```
 
 ### ソースコードからの開発用インストール
 
 ```bash
-git clone https://github.com/tsuyoshi-otake/otak-mcp-filesystem.git
-cd otak-mcp-filesystem
+git clone https://github.com/tsuyoshi-otake/otak-otak-mcp-filesystem.git
+cd otak-otak-mcp-filesystem
 npm install
 npm run build
 ```
@@ -69,19 +69,19 @@ npm run build
 デフォルト設定（Desktop/Otakのみアクセス可能）:
 ```bash
 # グローバルインストール後
-mcp-filesystem
+otak-mcp-filesystem
 
 # または直接実行
-npx otak-mcp-filesystem
+npx otak-otak-mcp-filesystem
 ```
 
 カスタムディレクトリを指定:
 ```bash
 # グローバルインストール後
-mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
+otak-mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
 
 # または直接実行
-npx otak-mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
+npx otak-otak-mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
 ```
 
 #### ソースコードから実行
@@ -107,7 +107,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
     "filesystem": {
       "command": "npx",
       "args": [
-        "otak-mcp-filesystem"
+        "otak-otak-mcp-filesystem"
       ]
     }
   }
@@ -122,7 +122,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
     "filesystem": {
       "command": "npx",
       "args": [
-        "otak-mcp-filesystem",
+        "otak-otak-mcp-filesystem",
         "{\"allowedDirectory\": \"C:/Users/username/Documents/MyProject\"}"
       ]
     }
@@ -135,7 +135,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
 {
   "mcpServers": {
     "filesystem": {
-      "command": "mcp-filesystem",
+      "command": "otak-mcp-filesystem",
       "args": [
         "{\"allowedDirectory\": \"/path/to/your/directory\"}"
       ]
