@@ -21,125 +21,21 @@ const DEFAULT_DIR = path.join(os.homedir(), 'Desktop', 'Otak');
 // 許可されたディレクトリ
 let allowedDirectory: string = DEFAULT_DIR;
 
-// 危険なコマンドのリスト
-const DANGEROUS_COMMANDS = [
-  'rm -rf /',
-  'format',
-  'fdisk',
-  'mkfs',
-  'dd',
-  'shutdown',
-  'reboot',
-  'halt',
-  'poweroff',
-  'init 0',
-  'init 6',
-  'sudo',
-  'su',
-  'chmod 777',
-  'chown',
-  'passwd',
-  'userdel',
-  'useradd',
-  'usermod',
-  'groupadd',
-  'groupdel',
-  'crontab -r',
-  'history -c',
-  '> /etc/',
-  '> /var/',
-  '> /usr/',
-  '> /bin/',
-  '> /sbin/',
-  'systemctl',
-  'service',
-  'net ',
-  'netsh',
-  'reg delete',
-  'reg add',
-  'regsvr32',
-  'taskkill /f',
-  'wmic',
-  'powershell',
-  'cmd.exe',
-  'diskpart'
-];
-
-// 許可されたコマンドのパターン
-const ALLOWED_COMMAND_PATTERNS = [
-  // ファイル・ディレクトリ操作
-  /^ls\b/,
-  /^dir\b/,
-  /^pwd$/,
-  /^cd\b/,
-  /^mkdir\b/,
-  /^rmdir\b/,
-  /^touch\b/,
-  /^cat\b/,
-  /^head\b/,
-  /^tail\b/,
-  /^less\b/,
-  /^more\b/,
-  /^cp\b/,
-  /^mv\b/,
-  /^rm\b(?!.*-rf.*\/)/,  // rm コマンドだが -rf / は除外
-  
-  // テキスト処理
-  /^grep\b/,
-  /^sed\b/,
-  /^awk\b/,
-  /^sort\b/,
-  /^uniq\b/,
-  /^wc\b/,
-  /^find\b/,
-  /^echo\b/,
-  
-  // システム情報
-  /^whoami$/,
-  /^date$/,
-  /^uname\b/,
-  /^ps\b/,
-  /^top$/,
-  /^df\b/,
-  /^du\b/,
-  /^free\b/,
-  /^uptime$/,
-  /^which\b/,
-  /^whereis\b/,
-  /^type\b/,
-  
-  // ネットワーク（安全なもの）
-  /^ping\b/,
-  /^curl\b/,
-  /^wget\b/,
-  /^nslookup\b/,
-  /^dig\b/,
-  
-  // 開発関連
-  /^git\b/,
-  /^npm\b/,
-  /^node\b/,
-  /^python\b/,
-  /^pip\b/,
-  /^java\b/,
-  /^javac\b/,
-  /^gcc\b/,
-  /^make\b/,
-  /^cmake\b/,
-  
-  // エディタ
-  /^nano\b/,
-  /^vim\b/,
-  /^vi\b/,
-  /^emacs\b/,
-  
-  // アーカイブ
-  /^tar\b/,
-  /^zip\b/,
-  /^unzip\b/,
-  /^gzip\b/,
-  /^gunzip\b/
-];
+// Windows専用 - 保護されたディレクトリ
+const PROTECTED_DIRECTORIES = [
+  'C:\\',
+  'C:\\Windows',
+  'C:\\Program Files',
+  'C:\\Program Files (x86)',
+  'C:\\Users',
+  '~',
+  '~/Desktop',
+  process.env.USERPROFILE || '',
+  process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Desktop') : '',
+  process.env.SYSTEMROOT || 'C:\\Windows',
+  process.env.PROGRAMFILES || 'C:\\Program Files',
+  process.env.PROGRAMFILES_X86 || 'C:\\Program Files (x86)'
+].filter(dir => dir); // 空文字列を除外
 
 // チルダ展開を処理する関数
 function expandTilde(filepath: string): string {
@@ -156,25 +52,42 @@ function isPathAllowed(targetPath: string): boolean {
   return resolvedPath.startsWith(resolvedAllowed);
 }
 
-// コマンドが安全かチェック
-function isCommandSafe(command: string): boolean {
-  const lowerCommand = command.toLowerCase().trim();
+// 保護されたディレクトリへの操作をチェック
+function isProtectedPath(targetPath: string): boolean {
+  const normalizedPath = path.resolve(targetPath).toLowerCase();
   
-  // 危険なコマンドをチェック
-  for (const dangerous of DANGEROUS_COMMANDS) {
-    if (lowerCommand.includes(dangerous.toLowerCase())) {
-      return false;
-    }
-  }
-  
-  // 許可されたコマンドパターンをチェック
-  for (const pattern of ALLOWED_COMMAND_PATTERNS) {
-    if (pattern.test(lowerCommand)) {
+  for (const protectedDir of PROTECTED_DIRECTORIES) {
+    const normalizedProtected = path.resolve(expandTilde(protectedDir)).toLowerCase();
+    if (normalizedPath === normalizedProtected || normalizedPath.startsWith(normalizedProtected + path.sep)) {
       return true;
     }
   }
   
   return false;
+}
+
+// コマンドが保護されたディレクトリに影響しないかチェック
+function isCommandSafe(command: string): boolean {
+  const lowerCommand = command.toLowerCase().trim();
+  
+  // 削除、移動、リネーム系のコマンドをチェック
+  const destructivePatterns = [
+    /(?:remove-item|rm|del|erase)\s+.*[c-z]:\\/i,  // ドライブルートの削除
+    /(?:remove-item|rm|del|erase)\s+.*windows/i,   // Windowsディレクトリ
+    /(?:remove-item|rm|del|erase)\s+.*program\s*files/i, // Program Files
+    /(?:move-item|mv|move|ren|rename)\s+.*[c-z]:\\/i,    // ドライブルートの移動
+    /(?:move-item|mv|move|ren|rename)\s+.*windows/i,     // Windowsディレクトリ
+    /(?:move-item|mv|move|ren|rename)\s+.*program\s*files/i, // Program Files
+  ];
+  
+  for (const pattern of destructivePatterns) {
+    if (pattern.test(command)) {
+      return false;
+    }
+  }
+  
+  // 基本的には全てのコマンドを許可（保護されたパスへの操作以外）
+  return true;
 }
 
 // コマンド実行結果の型
@@ -186,15 +99,14 @@ interface CommandResult {
   duration: number;
 }
 
-// コマンドを実行する関数
+// コマンドを実行する関数（Windows専用）
 function executeCommand(command: string, workingDir: string): Promise<CommandResult> {
   return new Promise((resolve) => {
     const startTime = Date.now();
-    const isWindows = process.platform === 'win32';
     
-    // WindowsとUnix系でシェルを分ける
-    const shell = isWindows ? 'cmd.exe' : '/bin/bash';
-    const shellArgs = isWindows ? ['/c', command] : ['-c', command];
+    // Windows専用 - PowerShellを使用
+    const shell = 'powershell.exe';
+    const shellArgs = ['-Command', command];
     
     const child = spawn(shell, shellArgs, {
       cwd: workingDir,
@@ -276,7 +188,7 @@ async function initialize() {
 
 const server = new Server(
   {
-    name: 'shell-mcp-server',
+    name: 'windows-shell-mcp-server',
     version: '1.0.0',
   },
   {
@@ -291,7 +203,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'Execute',
-        description: 'Execute a shell command in the allowed directory with security restrictions',
+        description: 'Execute a PowerShell command in the allowed directory with Windows system protection',
         inputSchema: {
           type: 'object',
           properties: {
@@ -309,7 +221,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'ListCommands',
-        description: 'Get a list of common safe commands that can be executed',
+        description: 'Get a list of common PowerShell commands that can be executed',
         inputSchema: {
           type: 'object',
           properties: {
@@ -346,7 +258,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'WhichShell',
-        description: 'Get information about the current shell and platform',
+        description: 'Get information about the current PowerShell and Windows platform',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -374,7 +286,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // セキュリティチェック
         if (!isCommandSafe(command)) {
-          throw new Error(`Command not allowed for security reasons: ${command}`);
+          throw new Error(`Command blocked - attempting to access protected Windows directories: ${command}`);
         }
 
         // 作業ディレクトリのチェック
@@ -410,29 +322,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         const commands = {
           file: [
-            'ls -la', 'dir', 'pwd', 'cd dirname',
-            'mkdir dirname', 'rmdir dirname', 'touch filename',
-            'cat filename', 'head filename', 'tail filename',
-            'cp source dest', 'mv source dest', 'rm filename'
+            'Get-ChildItem', 'Get-Location', 'Set-Location C:\\path',
+            'New-Item -ItemType Directory -Name dirname', 'Remove-Item dirname', 'New-Item -ItemType File -Name filename',
+            'Get-Content filename', 'Get-Content filename -Head 10', 'Get-Content filename -Tail 10',
+            'Copy-Item source dest', 'Move-Item source dest', 'Remove-Item filename'
           ],
           text: [
-            'grep pattern file', 'sed s/old/new/ file',
-            'awk {print $1} file', 'sort file', 'uniq file',
-            'wc file', 'echo text', 'find . -name pattern'
+            'Select-String "pattern" filename', 'Get-Content file | ForEach-Object { $_ -replace "old", "new" }',
+            'Get-Content file | ForEach-Object { $_.Split()[0] }', 'Get-Content file | Sort-Object', 'Get-Content file | Select-Object -Unique',
+            'Get-Content file | Measure-Object -Line', 'Write-Output "text"', 'Get-ChildItem -Recurse -Name "*pattern*"'
           ],
           system: [
-            'whoami', 'date', 'uname -a', 'ps aux',
-            'top', 'df -h', 'du -sh', 'free -h',
-            'uptime', 'which command'
+            'whoami', 'Get-Date', 'Get-ComputerInfo',
+            'Get-Process', 'Get-Process | Sort-Object CPU -Descending',
+            'Get-Volume', 'Get-ChildItem -Recurse | Measure-Object -Property Length -Sum'
           ],
           network: [
-            'ping hostname', 'curl url', 'wget url',
-            'nslookup hostname', 'dig hostname'
+            'Test-Connection hostname', 'Invoke-WebRequest url',
+            'Resolve-DnsName hostname', 'nslookup hostname'
           ],
           dev: [
             'git status', 'git log --oneline', 'npm list',
             'node --version', 'python --version',
-            'java -version', 'gcc --version'
+            'java -version', 'Get-Command git'
           ]
         };
 

@@ -34,59 +34,44 @@ function expandTilde(filepath: string): string {
   return filepath;
 }
 
-// 危険なコマンドのリスト
-const DANGEROUS_COMMANDS = [
-  'rm -rf /',
-  'format',
-  'fdisk',
-  'mkfs',
-  'dd',
-  'shutdown',
-  'reboot',
-  'halt',
-  'poweroff',
-  'sudo',
-  'su',
-  'systemctl',
-  'service',
-  'reg delete',
-  'taskkill /f',
-  'wmic',
-  'powershell',
-  'cmd.exe',
-  'diskpart'
-];
+// Windows専用 - 保護されたディレクトリ
+const PROTECTED_DIRECTORIES = [
+  'C:\\',
+  'C:\\Windows',
+  'C:\\Program Files',
+  'C:\\Program Files (x86)',
+  'C:\\Users',
+  '~',
+  '~/Desktop',
+  process.env.USERPROFILE || '',
+  process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Desktop') : '',
+  process.env.SYSTEMROOT || 'C:\\Windows',
+  process.env.PROGRAMFILES || 'C:\\Program Files',
+  process.env.PROGRAMFILES_X86 || 'C:\\Program Files (x86)'
+].filter(dir => dir); // 空文字列を除外
 
-// 許可されたコマンドのパターン
-const ALLOWED_COMMAND_PATTERNS = [
-  /^ls\b/, /^dir\b/, /^pwd$/, /^cd\b/, /^mkdir\b/, /^rmdir\b/, /^touch\b/,
-  /^cat\b/, /^head\b/, /^tail\b/, /^less\b/, /^more\b/, /^cp\b/, /^mv\b/,
-  /^rm\b(?!.*-rf.*\/)/, /^grep\b/, /^sed\b/, /^awk\b/, /^sort\b/, /^uniq\b/,
-  /^wc\b/, /^find\b/, /^echo\b/, /^whoami$/, /^date$/, /^uname\b/, /^ps\b/,
-  /^top$/, /^df\b/, /^du\b/, /^free\b/, /^uptime$/, /^which\b/, /^whereis\b/,
-  /^type\b/, /^ping\b/, /^curl\b/, /^wget\b/, /^nslookup\b/, /^dig\b/,
-  /^git\b/, /^npm\b/, /^node\b/, /^python\b/, /^pip\b/, /^java\b/, /^javac\b/,
-  /^gcc\b/, /^make\b/, /^cmake\b/, /^nano\b/, /^vim\b/, /^vi\b/, /^emacs\b/,
-  /^tar\b/, /^zip\b/, /^unzip\b/, /^gzip\b/, /^gunzip\b/
-];
-
-// コマンドが安全かチェック
+// コマンドが保護されたディレクトリに影響しないかチェック
 function isCommandSafe(command: string): boolean {
   const lowerCommand = command.toLowerCase().trim();
   
-  for (const dangerous of DANGEROUS_COMMANDS) {
-    if (lowerCommand.includes(dangerous.toLowerCase())) {
+  // 削除、移動、リネーム系のコマンドをチェック
+  const destructivePatterns = [
+    /(?:remove-item|rm|del|erase)\s+.*[c-z]:\\/i,  // ドライブルートの削除
+    /(?:remove-item|rm|del|erase)\s+.*windows/i,   // Windowsディレクトリ
+    /(?:remove-item|rm|del|erase)\s+.*program\s*files/i, // Program Files
+    /(?:move-item|mv|move|ren|rename)\s+.*[c-z]:\\/i,    // ドライブルートの移動
+    /(?:move-item|mv|move|ren|rename)\s+.*windows/i,     // Windowsディレクトリ
+    /(?:move-item|mv|move|ren|rename)\s+.*program\s*files/i, // Program Files
+  ];
+  
+  for (const pattern of destructivePatterns) {
+    if (pattern.test(command)) {
       return false;
     }
   }
   
-  for (const pattern of ALLOWED_COMMAND_PATTERNS) {
-    if (pattern.test(lowerCommand)) {
-      return true;
-    }
-  }
-  
-  return false;
+  // 基本的には全てのコマンドを許可（保護されたパスへの操作以外）
+  return true;
 }
 
 // コマンド実行結果の型
@@ -98,14 +83,14 @@ interface CommandResult {
   duration: number;
 }
 
-// コマンドを実行する関数
+// コマンドを実行する関数（Windows専用）
 function executeCommand(command: string, workingDir: string): Promise<CommandResult> {
   return new Promise((resolve) => {
     const startTime = Date.now();
-    const isWindows = process.platform === 'win32';
     
-    const shell = isWindows ? 'cmd.exe' : '/bin/bash';
-    const shellArgs = isWindows ? ['/c', command] : ['-c', command];
+    // Windows専用 - PowerShellを使用
+    const shell = 'powershell.exe';
+    const shellArgs = ['-Command', command];
     
     const child = spawn(shell, shellArgs, {
       cwd: workingDir,

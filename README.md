@@ -1,13 +1,15 @@
-# Shell MCP Server
+# Windows PowerShell MCP Server
 
-シェルコマンド実行をサポートするMCP (Model Context Protocol) サーバーの実装です。SSEとHTTP Streamingに対応しています。
+Windows PowerShell専用のMCP (Model Context Protocol) サーバーの実装です。SSEとHTTP Streamingに対応しています。
+
+**Windows専用設計** - PowerShellコマンドの実行に特化し、Windows系重要ディレクトリの保護機能を内蔵しています。
 
 ## セキュリティ機能
 
-- **コマンド実行制限**: 安全なコマンドのみ実行可能
+- **Windows系ディレクトリ保護**: C:\、Windows、Program Files等の重要ディレクトリを削除・移動から保護
 - **作業ディレクトリ制限**: 指定されたディレクトリ内でのみコマンド実行
 - **デフォルト制限**: 引数なしの場合は `~/Desktop/Otak` ディレクトリのみでコマンド実行可能
-- **危険コマンドのブロック**: システムに影響を与える可能性のあるコマンドを防止
+- **システム保護**: 重要なシステムファイルとディレクトリへの破壊的操作を防止
 
 ## ディレクトリアクセス仕様
 
@@ -24,12 +26,20 @@ JSON形式の引数で `allowedDirectory` を指定することで、コマン�
 
 ### セキュリティ制限
 - 指定されたディレクトリの外でのコマンド実行は拒否されます
-- 危険なコマンド（rm -rf, format, etc.）の実行は防止されます
-- システムファイルへのアクセスを防止します
+- 重要なWindowsディレクトリ（C:\、Windows、Program Files等）への削除・移動操作は防止されます
+- システムファイルとディレクトリを保護します
 
 ## 機能
 
 ### 基本的なシェルコマンド実行
+**PowerShell/Windows**
+- ディレクトリ操作（Get-ChildItem, Set-Location, New-Item）
+- ファイル操作（Get-Content, Write-Output, New-Item）
+- テキスト処理（Select-String, ForEach-Object）
+- プロセス管理（Get-Process, Stop-Process）
+- システム情報取得（whoami, Get-Location, Get-Date）
+
+**Unix/Linux**
 - ディレクトリ操作（ls, cd, mkdir）
 - ファイル操作（cat, echo, touch）
 - テキスト処理（grep, sed, awk）
@@ -65,32 +75,32 @@ npm run build
 
 ### 基本的な使用方法
 
-```bash
+```powershell
 # デフォルトディレクトリ（~/Desktop/Otak）で起動
 otak-mcp-shell
 
 # カスタムディレクトリを指定
-otak-mcp-shell '{"allowedDirectory": "/path/to/your/directory"}'
+otak-mcp-shell '{"allowedDirectory": "C:\\path\\to\\your\\directory"}'
 ```
 
 ### HTTP サーバーモード
 
-```bash
+```powershell
 # HTTP サーバーとして起動
 otak-mcp-shell-http
 
 # カスタムポート
-PORT=8768 otak-mcp-shell-http
+$env:PORT=8768; otak-mcp-shell-http
 ```
 
 ### MCP over HTTP モード
 
-```bash
+```powershell
 # MCP over HTTP として起動
 otak-mcp-shell-mcp
 
 # カスタムポート
-PORT=8767 otak-mcp-shell-mcp
+$env:PORT=8767; otak-mcp-shell-mcp
 ```
 
 ## 環境変数
@@ -109,46 +119,52 @@ PORT=8767 otak-mcp-shell-mcp
 
 ### 使用例
 
-```bash
-# コマンド実行 (HTTP サーバー)
-curl -X POST http://localhost:8768/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "ls -la"}'
+```powershell
+# コマンド実行 (HTTP サーバー) - PowerShell
+Invoke-RestMethod -Uri "http://localhost:8768/execute" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body '{"command": "Get-ChildItem -Force"}'
 
-# ストリーミング出力の監視
-curl http://localhost:8768/stream/command-id-123
+# または curl を使用
+curl -X POST http://localhost:8768/execute `
+  -H "Content-Type: application/json" `
+  -d '{"command": "Get-ChildItem -Force"}'
 ```
 
 ## セキュリティ
 
-このサーバーはセキュリティを重視して設計されています：
+このサーバーはWindows環境でのセキュリティを重視して設計されています：
 
-1. **コマンド実行制限**: 安全なコマンドのみ実行可能
+1. **Windows系ディレクトリ保護**: 重要なシステムディレクトリを削除・移動から保護
 2. **ディレクトリ制限**: 指定されたディレクトリ外へのアクセス防止
-3. **危険コマンドのブロック**: システムに影響を与えるコマンドの実行を防止
-4. **入力検証**: すべての入力に対する厳密な検証
+3. **システム保護**: Windows重要ファイルとディレクトリへの破壊的操作を防止
+4. **入力検証**: すべてのPowerShellコマンドに対する厳密な検証
 
 ## 対応コマンド例
 
-### ファイル・ディレクトリ操作
-- `ls`, `dir`, `pwd`, `cd`
-- `mkdir`, `rmdir`, `touch`
-- `cat`, `head`, `tail`, `less`
-- `cp`, `mv`, `rm` (安全な使用のみ)
+### ファイル・ディレクトリ操作 (PowerShell)
+- `Get-ChildItem`, `Set-Location`, `Get-Location`
+- `New-Item`, `Remove-Item`, `New-Item -ItemType File`
+- `Get-Content`, `Select-Object -First`, `Select-Object -Last`
+- `Copy-Item`, `Move-Item`, `Remove-Item` (安全な使用のみ)
 
-### テキスト処理
-- `grep`, `sed`, `awk`
-- `sort`, `uniq`, `wc`
-- `find` (制限付き)
+### テキスト処理 (PowerShell)
+- `Select-String`, `ForEach-Object`, `Where-Object`
+- `Sort-Object`, `Select-Object -Unique`, `Measure-Object`
+- `Get-ChildItem -Recurse` (制限付き)
 
-### システム情報
-- `whoami`, `date`, `uname`
-- `ps`, `top` (制限付き)
-- `df`, `du` (制限付き)
+### システム情報 (PowerShell)
+- `whoami`, `Get-Date`, `Get-ComputerInfo`
+- `Get-Process`, `Stop-Process` (制限付き)
+- `Get-Volume`, `Get-ChildItem -Recurse | Measure-Object` (制限付き)
+
+### Unix/Linux コマンド
+- `ls`, `cd`, `pwd`, `mkdir`, `cat`, `grep` など (Unix系環境で利用可能)
 
 ## 開発
 
-```bash
+```powershell
 # 開発サーバー起動
 npm run dev
 
@@ -167,7 +183,7 @@ npm test
 
 ## Windows サービスとして実行
 
-```bash
+```powershell
 # HTTP サーバーをサービスとしてインストール
 npm run service:install:http
 

@@ -1,7 +1,7 @@
 {
   "name": "otak-mcp-shell",
   "version": "1.0.0",
-  "description": "MCP server for shell command execution with SSE/HTTP streaming support",
+  "description": "Windows PowerShell MCP server with system directory protection and SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {
     "otak-mcp-shell": "./dist/index.js",
@@ -40,7 +40,8 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
-    "shell",
+    "windows",
+    "powershell",
     "command-execution",
     "sse",
     "streaming"
