@@ -33,23 +33,40 @@ function loadConfig() {
     serverType: 'stdio' // stdio, http, mcp
   };
 
-  if (args.length > 0) {
-    try {
-      const userConfig = JSON.parse(args[0]);
-      // null値を除外してマージ
-      Object.keys(userConfig).forEach(key => {
-        if (userConfig[key] !== null && userConfig[key] !== undefined) {
-          config[key] = userConfig[key];
-        }
-      });
-    } catch (error) {
-      console.error('Invalid configuration JSON:', error.message);
-      process.exit(1);
+  // 環境変数から設定を読み込み
+  if (process.env.SERVICE_TYPE) config.serverType = process.env.SERVICE_TYPE;
+  if (process.env.ALLOWED_DIR) config.allowedDirectory = process.env.ALLOWED_DIR;
+  if (process.env.SERVICE_NAME) config.serviceName = process.env.SERVICE_NAME;
+  if (process.env.DISPLAY_NAME) config.displayName = process.env.DISPLAY_NAME;
+
+  // コマンドライン引数を解析
+  for (let i = 0; i < args.length; i += 2) {
+    const key = args[i];
+    const value = args[i + 1];
+    
+    if (!value) continue;
+    
+    switch (key) {
+      case '--type':
+      case '-t':
+        config.serverType = value;
+        break;
+      case '--dir':
+      case '-d':
+        config.allowedDirectory = value;
+        break;
+      case '--name':
+      case '-n':
+        config.serviceName = value;
+        break;
+      case '--display':
+        config.displayName = value;
+        break;
     }
   }
 
   // サーバータイプに応じてサービス名を自動調整
-  if (config.serverType !== 'stdio') {
+  if (config.serverType !== 'stdio' && !process.env.SERVICE_NAME && !args.includes('--name') && !args.includes('-n')) {
     const typeMap = { http: 'HTTP', mcp: 'MCP' };
     config.serviceName = `OtakMCPFilesystem${typeMap[config.serverType] || ''}`;
     config.displayName = `Otak MCP Filesystem ${typeMap[config.serverType] || ''} Server`;

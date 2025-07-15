@@ -1,6 +1,6 @@
 {
   "name": "otak-mcp-filesystem",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "MCP server for filesystem operations with SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {

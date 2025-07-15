@@ -59,72 +59,6 @@ function runScript(scriptName, args) {
   });
 }
 
-function parseArgs(args) {
-  const config = {
-    serverType: 'stdio',
-    allowedDirectory: null,
-    serviceName: null,
-    displayName: null
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    const nextArg = args[i + 1];
-
-    switch (arg) {
-      case '--type':
-      case '-t':
-        if (nextArg && ['stdio', 'http', 'mcp'].includes(nextArg)) {
-          config.serverType = nextArg;
-          i++; // skip next argument
-        } else {
-          console.error(`❌ Invalid server type: ${nextArg}`);
-          console.error('Valid types: stdio, http, mcp');
-          process.exit(1);
-        }
-        break;
-
-      case '--dir':
-      case '-d':
-        if (nextArg) {
-          config.allowedDirectory = nextArg;
-          i++; // skip next argument
-        } else {
-          console.error('❌ --dir requires a directory path');
-          process.exit(1);
-        }
-        break;
-
-      case '--name':
-      case '-n':
-        if (nextArg) {
-          config.serviceName = nextArg;
-          i++; // skip next argument
-        } else {
-          console.error('❌ --name requires a service name');
-          process.exit(1);
-        }
-        break;
-
-      case '--display':
-        if (nextArg) {
-          config.displayName = nextArg;
-          i++; // skip next argument
-        } else {
-          console.error('❌ --display requires a display name');
-          process.exit(1);
-        }
-        break;
-
-      default:
-        console.error(`❌ Unknown option: ${arg}`);
-        showHelp();
-        process.exit(1);
-    }
-  }
-
-  return config;
-}
 
 function main() {
   const args = process.argv.slice(2);
@@ -140,17 +74,12 @@ function main() {
   switch (command) {
     case 'install':
       console.log('📦 Installing Otak MCP Filesystem Windows Service...');
-      const config = parseArgs(options);
-      const configJson = JSON.stringify(config);
-      console.log('Configuration:', configJson);
-      runScript('install-service.js', [configJson]);
+      runScript('install-service.js', options);
       break;
     
     case 'uninstall':
       console.log('🗑️  Uninstalling Otak MCP Filesystem Windows Service...');
-      const uninstallConfig = parseArgs(options);
-      const uninstallJson = JSON.stringify(uninstallConfig);
-      runScript('uninstall-service.js', [uninstallJson]);
+      runScript('uninstall-service.js', options);
       break;
     
     case 'help':

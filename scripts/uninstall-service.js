@@ -25,15 +25,21 @@ function main() {
   const args = process.argv.slice(2);
   let serviceName = 'OtakMCPFilesystem';
 
-  if (args.length > 0) {
-    try {
-      const config = JSON.parse(args[0]);
-      if (config.serviceName !== null && config.serviceName !== undefined) {
-        serviceName = config.serviceName;
-      }
-    } catch (error) {
-      console.error('Invalid configuration JSON:', error.message);
-      process.exit(1);
+  // 環境変数から設定を読み込み
+  if (process.env.SERVICE_NAME) serviceName = process.env.SERVICE_NAME;
+
+  // コマンドライン引数を解析
+  for (let i = 0; i < args.length; i += 2) {
+    const key = args[i];
+    const value = args[i + 1];
+    
+    if (!value) continue;
+    
+    switch (key) {
+      case '--name':
+      case '-n':
+        serviceName = value;
+        break;
     }
   }
 
