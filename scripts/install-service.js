@@ -116,6 +116,10 @@ function main() {
       {
         name: 'NODE_ENV',
         value: 'production'
+      },
+      {
+        name: 'ALLOWED_DIRECTORY',
+        value: config.allowedDirectory
       }
     ] : undefined,
     scriptOptions: config.serverType === 'stdio' ? 
