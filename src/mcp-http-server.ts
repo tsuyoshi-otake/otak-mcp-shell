@@ -159,15 +159,25 @@ async function initialize() {
 // MCPサーバーのセットアップ
 const server = new Server(
   {
-    name: 'shell-mcp-server',
-    version: '1.0.0',
+    name: 'otak-mcp-shell',
+    version: '2.0.3',
   },
   {
     capabilities: {
       tools: {},
+      logging: {},
     },
   }
 );
+
+// サーバーの初期化イベントハンドラー
+server.onerror = (error) => {
+  console.error('MCP Server error:', error);
+};
+
+server.onclose = () => {
+  console.log('MCP Server connection closed');
+};
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -322,11 +332,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`MCP tool error (${name}):`, errorMessage);
+    
     return {
       content: [
         {
           type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          text: `Error executing ${name}: ${errorMessage}`,
         },
       ],
       isError: true,
@@ -340,15 +353,18 @@ app.use(express.json({ limit: '10mb' }));
 
 // CORS設定
 app.use((req, res, next) => {
+  // すべてのオリジンを許可
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Max-Age', '86400');
   
+  // OPTIONSリクエストに対して即座に200を返す
   if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
+    return res.status(200).end();
   }
+  
+  next();
 });
 
 // ヘルスチェック
@@ -374,63 +390,267 @@ app.get('/mcp', (req, res) => {
   });
 });
 
-// MCPエンドポイント - POST (JSON-RPC requests)
-app.post('/mcp', express.json(), async (req, res) => {
+// MCPエンドポイント - HTTP POST
+app.post('/mcp', async (req, res) => {
+  console.log('Received MCP request:', req.body);
+  
+  // シンプルなリクエスト/レスポンス処理
+  const request = req.body;
+  
+  // Notificationの場合はレスポンスを返さない
+  if (!request.id && request.method === 'notifications/initialized') {
+    console.log('Received initialized notification');
+    res.status(200).end();
+    return;
+  }
+  
   try {
-    console.log('MCP POST request received:', req.body);
-    
-    // 基本的なJSON-RPCレスポンス
-    const response = {
-      jsonrpc: "2.0",
-      id: req.body.id || null,
-      result: {
-        message: "MCP HTTP endpoint - use SSE endpoint for full MCP protocol",
-        redirect: "/sse"
+    if (request.method === 'initialize') {
+      res.json({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: {
+          protocolVersion: '2025-06-18',
+          capabilities: {
+            tools: {},
+          },
+          serverInfo: {
+            name: 'otak-mcp-shell',
+            version: '2.0.3',
+          },
+        },
+      });
+    } else if (request.method === 'tools/list') {
+      // 直接ツール一覧を返す
+      res.json({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: {
+          tools: [
+            {
+              name: 'Execute',
+              description: 'Execute a shell command in the allowed directory with security restrictions',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  command: {
+                    type: 'string',
+                    description: 'The shell command to execute',
+                  },
+                  workingDir: {
+                    type: 'string',
+                    description: 'The working directory for command execution (optional, defaults to allowed directory)',
+                  },
+                },
+                required: ['command'],
+              },
+            },
+            {
+              name: 'ListCommands',
+              description: 'Get a list of common safe commands that can be executed',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  category: {
+                    type: 'string',
+                    description: 'Filter commands by category (file, text, system, network, dev)',
+                  },
+                },
+                required: [],
+              },
+            },
+            {
+              name: 'PWD',
+              description: 'Get the current working directory path',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+              },
+            },
+          ],
+        },
+      });
+    } else if (request.method === 'tools/call') {
+      // ツール実行のロジック
+      const { name, arguments: args } = request.params;
+      
+      try {
+        let result;
+        switch (name) {
+          case 'Execute': {
+            const command = args?.command as string;
+            const workingDir = args?.workingDir ?
+              path.resolve(allowedDirectory, args.workingDir as string) :
+              allowedDirectory;
+
+            if (!command) {
+              throw new Error('Command is required');
+            }
+
+            if (!isCommandSafe(command)) {
+              throw new Error(`Command not allowed for security reasons: ${command}`);
+            }
+
+            const execResult = await executeCommand(command, workingDir);
+            
+            const response = {
+              command: execResult.command,
+              workingDirectory: workingDir.replace(/\\/g, '/'),
+              exitCode: execResult.exitCode,
+              duration: `${execResult.duration}ms`,
+              stdout: execResult.stdout || '(no output)',
+              stderr: execResult.stderr || '(no errors)',
+              success: execResult.exitCode === 0
+            };
+
+            result = {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(response, null, 2),
+                },
+              ],
+            };
+            break;
+          }
+
+          case 'ListCommands': {
+            const category = args?.category as string;
+            
+            const commands = {
+              file: [
+                'ls -la', 'dir', 'pwd', 'cd dirname',
+                'mkdir dirname', 'rmdir dirname', 'touch filename',
+                'cat filename', 'head filename', 'tail filename',
+                'cp source dest', 'mv source dest', 'rm filename'
+              ],
+              text: [
+                'grep pattern file', 'sed s/old/new/ file',
+                'awk {print $1} file', 'sort file', 'uniq file',
+                'wc file', 'echo text', 'find . -name pattern'
+              ],
+              system: [
+                'whoami', 'date', 'uname -a', 'ps aux',
+                'top', 'df -h', 'du -sh', 'free -h',
+                'uptime', 'which command'
+              ],
+              network: [
+                'ping hostname', 'curl url', 'wget url',
+                'nslookup hostname', 'dig hostname'
+              ],
+              dev: [
+                'git status', 'git log --oneline', 'npm list',
+                'node --version', 'python --version',
+                'java -version', 'gcc --version'
+              ]
+            };
+
+            const cmdResult = category && commands[category as keyof typeof commands]
+              ? { [category]: commands[category as keyof typeof commands] }
+              : commands;
+
+            result = {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({
+                    description: 'Common safe commands by category',
+                    note: 'These are examples of allowed commands. Dangerous operations are blocked.',
+                    commands: cmdResult
+                  }, null, 2),
+                },
+              ],
+            };
+            break;
+          }
+
+          case 'PWD': {
+            result = {
+              content: [
+                {
+                  type: 'text',
+                  text: allowedDirectory.replace(/\\/g, '/'),
+                },
+              ],
+            };
+            break;
+          }
+
+          default:
+            throw new Error(`Unknown tool: ${name}`);
+        }
+        
+        res.json({
+          jsonrpc: '2.0',
+          id: request.id,
+          result,
+        });
+      } catch (error) {
+        res.json({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `Error executing ${name}: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+            isError: true,
+          },
+        });
       }
-    };
-    
-    res.json(response);
+    } else {
+      res.json({
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32601,
+          message: `Method not found: ${request.method}`,
+        },
+      });
+    }
   } catch (error) {
     console.error('MCP request error:', error);
-    res.status(500).json({
-      jsonrpc: "2.0",
-      id: req.body?.id || null,
+    res.json({
+      jsonrpc: '2.0',
+      id: request.id,
       error: {
         code: -32603,
-        message: "Internal error"
-      }
+        message: error instanceof Error ? error.message : 'Internal error',
+      },
     });
   }
 });
 
 // MCPエンドポイント - SSE接続
 app.get('/sse', async (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
-
-  const sseTransport = new SSEServerTransport('/sse', res);
-  await server.connect(sseTransport);
+  const transport = new SSEServerTransport('/message', res);
+  await server.connect(transport);
 });
 
 // サーバー起動
-const PORT = process.env.PORT || 8767;
+const PORT = parseInt(process.env.PORT || '8767', 10);
+const HOST = process.env.HOST || 'localhost';
 
-async function main() {
-  await initialize();
-  
-  app.listen(PORT, () => {
-    console.log(`Shell MCP over HTTP server running on port ${PORT}`);
-    console.log(`Working directory: ${allowedDirectory}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`MCP endpoint: http://localhost:${PORT}/sse`);
+// 初期化してからサーバーを起動
+initialize().then(() => {
+  app.listen(PORT, HOST, () => {
+    console.log(`Shell MCP over HTTP/SSE server running on ${HOST}:${PORT}`);
+    console.log(`MCP HTTP endpoint: http://${HOST}:${PORT}/mcp`);
+    console.log(`MCP SSE endpoint: http://${HOST}:${PORT}/sse`);
+    console.log(`Health check: http://${HOST}:${PORT}/health`);
+    console.log(`Allowed directory: ${allowedDirectory}`);
+  }).on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Please specify a different port using the PORT environment variable.`);
+    } else {
+      console.error('Server error:', err);
+    }
+    process.exit(1);
   });
-}
-
-main().catch((error) => {
-  console.error('Server error:', error);
+}).catch((error) => {
+  console.error('Initialization error:', error);
   process.exit(1);
 });

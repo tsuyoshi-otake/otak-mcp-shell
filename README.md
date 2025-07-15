@@ -4,6 +4,13 @@ Windows PowerShell専用のMCP (Model Context Protocol) サーバーの実装で
 
 **Windows専用設計** - PowerShellコマンドの実行に特化し、Windows系重要ディレクトリの保護機能を内蔵しています。
 
+## 🆕 v2.0.4 の新機能
+
+- **MCP over HTTP 完全対応**: `http://localhost:8767/mcp` エンドポイントでブラウザベースクライアントから直接接続可能
+- **CORS設定改善**: すべてのオリジンからのアクセスに対応、ブラウザセキュリティ制限を解決
+- **Zodスキーマ検証エラー修正**: MCP応答形式の完全準拠により、クライアント接続の安定性を向上
+- **SSE接続最適化**: Server-Sent Eventsの安定性と互換性を改善
+
 ## セキュリティ機能
 
 - **Windows系ディレクトリ保護**: C:\、Windows、Program Files等の重要ディレクトリを削除・移動から保護
@@ -103,6 +110,34 @@ otak-mcp-shell-mcp
 $env:PORT=8767; otak-mcp-shell-mcp
 ```
 
+### ブラウザベースクライアントからの接続
+
+v2.0.4以降、ブラウザベースのMCPクライアントから直接接続できます：
+
+- **エンドポイント**: `http://localhost:8767/mcp`
+- **プロトコル**: MCP over HTTP (JSON-RPC 2.0)
+- **CORS**: 完全対応（すべてのオリジンからアクセス可能）
+
+#### 利用可能なツール
+- `Execute`: セキュリティ制限付きPowerShellコマンド実行
+- `ListCommands`: カテゴリ別の安全なコマンド一覧取得
+- `PWD`: 現在の作業ディレクトリ取得
+
+#### 接続例
+```javascript
+// ブラウザからの接続例
+const response = await fetch('http://localhost:8767/mcp', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    method: 'tools/call',
+    params: { name: 'PWD', arguments: {} },
+    id: 1
+  })
+});
+```
+
 ## 環境変数
 
 - `ALLOWED_DIRECTORY`: 許可するディレクトリのパス
@@ -111,13 +146,28 @@ $env:PORT=8767; otak-mcp-shell-mcp
 
 ## API エンドポイント
 
-### HTTP モード
+### HTTP モード (ポート 8768)
 
 - `GET /health` - ヘルスチェック
 - `POST /execute` - コマンド実行
 - `GET /stream/:commandId` - コマンド実行結果のストリーミング
 
+### MCP over HTTP モード (ポート 8767)
+
+- `GET /health` - ヘルスチェック
+- `POST /mcp` - MCP JSON-RPC 2.0 エンドポイント
+- `GET /sse` - Server-Sent Events (SSE) ストリーミング
+- `GET /mcp` - MCP エンドポイント情報
+
+#### MCP プロトコル対応メソッド
+- `initialize` - MCP接続初期化
+- `tools/list` - 利用可能なツール一覧取得
+- `tools/call` - ツール実行
+- `notifications/initialized` - 初期化完了通知
+
 ### 使用例
+
+#### HTTP サーバー (ポート 8768)
 
 ```powershell
 # コマンド実行 (HTTP サーバー) - PowerShell
@@ -130,6 +180,30 @@ Invoke-RestMethod -Uri "http://localhost:8768/execute" `
 curl -X POST http://localhost:8768/execute `
   -H "Content-Type: application/json" `
   -d '{"command": "Get-ChildItem -Force"}'
+```
+
+#### MCP over HTTP (ポート 8767)
+
+```powershell
+# MCP 初期化
+curl -X POST http://localhost:8767/mcp `
+  -H "Content-Type: application/json" `
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}'
+
+# ツール一覧取得
+curl -X POST http://localhost:8767/mcp `
+  -H "Content-Type: application/json" `
+  -d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}'
+
+# コマンド実行
+curl -X POST http://localhost:8767/mcp `
+  -H "Content-Type: application/json" `
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"Execute","arguments":{"command":"Get-Location"}},"id":3}'
+
+# PWD取得
+curl -X POST http://localhost:8767/mcp `
+  -H "Content-Type: application/json" `
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"PWD","arguments":{}},"id":4}'
 ```
 
 ## セキュリティ
