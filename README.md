@@ -258,6 +258,78 @@ otak-mcp-filesystem-http   # HTTP版
 otak-mcp-filesystem-mcp    # MCP HTTP/SSE版
 ```
 
+## Windowsサービス化
+
+Windows環境でMCPサーバーを常駐サービスとして動作させることができます。
+
+### 前提条件
+
+- Windows OS
+- Node.js がインストールされている
+- 管理者権限でコマンドプロンプトを実行
+
+### サービスのインストール
+
+```bash
+# パッケージをインストール
+npm install -g otak-mcp-filesystem
+
+# ビルド（ソースコードから実行する場合）
+npm run build
+
+# デフォルト設定でサービスインストール（stdio MCP server）
+npm run service:install
+
+# カスタムディレクトリを指定してインストール
+npm run service:install '{"allowedDirectory": "C:\\Users\\username\\Documents\\MyProject"}'
+
+# HTTP サーバーとしてインストール
+npm run service:install:http
+
+# MCP HTTP/SSE サーバーとしてインストール
+npm run service:install:mcp
+```
+
+### サービスの管理
+
+```bash
+# サービス開始
+net start OtakMCPFilesystem
+
+# サービス停止
+net stop OtakMCPFilesystem
+
+# サービスの状態確認
+sc query OtakMCPFilesystem
+
+# サービスのアンインストール
+npm run service:uninstall
+```
+
+### サービス設定オプション
+
+```json
+{
+  "allowedDirectory": "C:\\Users\\username\\Documents\\MyProject",
+  "serviceName": "OtakMCPFilesystem",
+  "displayName": "Otak MCP Filesystem Server",
+  "description": "MCP server for secure filesystem operations",
+  "serverType": "stdio"
+}
+```
+
+**serverType オプション:**
+- `stdio`: 標準入出力でMCPプロトコル（デフォルト）
+- `http`: HTTPサーバー（ポート8766）
+- `mcp`: MCP HTTP/SSEサーバー（ポート8765）
+
+### サービスログ
+
+Windowsサービスのログは Windows Event Viewer で確認できます：
+1. Windows Event Viewer を開く
+2. `Windows Logs` > `Application` を選択
+3. `Source` が `OtakMCPFilesystem` のエントリを確認
+
 ## NPMパッケージの公開
 
 GitHub Actionsを使用した自動公開:

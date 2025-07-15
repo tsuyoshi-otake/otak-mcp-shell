@@ -1,6 +1,6 @@
 {
   "name": "otak-mcp-filesystem",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "MCP server for filesystem operations with SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {
@@ -10,6 +10,7 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/**/*",
     "README.md"
   ],
   "repository": {
@@ -29,9 +30,19 @@
     "start:http": "node dist/http-server.js",
     "start:mcp": "node dist/mcp-http-server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "service:install": "node scripts/install-service.js",
+    "service:uninstall": "node scripts/uninstall-service.js",
+    "service:install:http": "node scripts/install-service.js '{\"serverType\": \"http\", \"serviceName\": \"OtakMCPFilesystemHTTP\", \"displayName\": \"Otak MCP Filesystem HTTP Server\"}'",
+    "service:install:mcp": "node scripts/install-service.js '{\"serverType\": \"mcp\", \"serviceName\": \"OtakMCPFilesystemMCP\", \"displayName\": \"Otak MCP Filesystem MCP Server\"}'"
   },
-  "keywords": ["mcp", "model-context-protocol", "filesystem", "sse", "streaming"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "filesystem",
+    "sse",
+    "streaming"
+  ],
   "author": "Tsuyoshi Otake",
   "license": "MIT",
   "type": "commonjs",
@@ -43,6 +54,7 @@
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.14",
+    "node-windows": "^1.0.0-beta.8",
     "nodemon": "^3.1.10",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
