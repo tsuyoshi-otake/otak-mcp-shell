@@ -277,14 +277,17 @@ npm install -g otak-mcp-filesystem
 # デフォルト設定でサービスインストール（stdio MCP server）
 otak-mcp-filesystem-service install
 
-# カスタムディレクトリを指定してインストール
-otak-mcp-filesystem-service install '{"allowedDirectory": "C:\\Users\\username\\Documents\\MyProject"}'
+# MCP HTTP/SSE サーバーとしてインストール
+otak-mcp-filesystem-service install --type mcp
 
 # HTTP サーバーとしてインストール
-otak-mcp-filesystem-service install '{"serverType": "http"}'
+otak-mcp-filesystem-service install --type http
 
-# MCP HTTP/SSE サーバーとしてインストール
-otak-mcp-filesystem-service install '{"serverType": "mcp"}'
+# カスタムディレクトリを指定してインストール
+otak-mcp-filesystem-service install --dir C:\Users\username\Documents\MyProject
+
+# 複数オプションの組み合わせ
+otak-mcp-filesystem-service install --type mcp --dir C:\Users\username\Desktop\SmileCHAT
 ```
 
 ### サービスの管理
