@@ -58,6 +58,16 @@ function getSafePath(requestedPath: string): string {
   return fullPath;
 }
 
+// 日付を簡略化（区切り文字なし）
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day} ${hours}${minutes}`;
+}
+
 // 初期化処理
 async function initialize() {
   // デフォルトディレクトリが存在しない場合は作成
@@ -88,7 +98,8 @@ async function handleToolCall(toolName: string, args: any) {
   try {
     switch (toolName) {
       case 'list_directory': {
-        const dirPath = getSafePath(args.path as string || '.');
+        const requestedPath = args?.path as string;
+        const dirPath = requestedPath ? getSafePath(requestedPath) : allowedDirectory;
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
         const result = await Promise.all(
           entries.map(async (entry) => {
@@ -98,11 +109,15 @@ async function handleToolCall(toolName: string, args: any) {
               name: entry.name,
               type: entry.isDirectory() ? 'directory' : 'file',
               size: stats.size,
-              modified: stats.mtime.toISOString(),
+              modified: formatDate(stats.mtime),
             };
           })
         );
-        return { success: true, data: result };
+        const response = {
+          path: dirPath,
+          files: result
+        };
+        return { success: true, data: response };
       }
 
       case 'read_file': {
@@ -135,6 +150,10 @@ async function handleToolCall(toolName: string, args: any) {
         return { success: true, message: `Successfully deleted ${targetPath}` };
       }
 
+      case 'pwd': {
+        return { success: true, data: allowedDirectory };
+      }
+
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -151,16 +170,16 @@ app.get('/tools', async (req, res) => {
     tools: [
       {
         name: 'list_directory',
-        description: 'List files and directories in a given path',
+        description: 'List files and directories in a given path (defaults to allowed directory)',
         inputSchema: {
           type: 'object',
           properties: {
             path: {
               type: 'string',
-              description: 'The directory path to list',
+              description: 'The directory path to list (optional, defaults to allowed directory)',
             },
           },
-          required: ['path'],
+          required: [],
         },
       },
       {
@@ -221,6 +240,15 @@ app.get('/tools', async (req, res) => {
             },
           },
           required: ['path'],
+        },
+      },
+      {
+        name: 'pwd',
+        description: 'Get the current allowed directory path',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          required: [],
         },
       },
     ],

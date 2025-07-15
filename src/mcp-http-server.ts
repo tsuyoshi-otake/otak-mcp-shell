@@ -59,6 +59,16 @@ function getSafePath(requestedPath: string): string {
   return fullPath;
 }
 
+// 日付を簡略化（区切り文字なし）
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day} ${hours}${minutes}`;
+}
+
 // 初期化処理
 async function initialize() {
   // デフォルトディレクトリが存在しない場合は作成
@@ -109,16 +119,16 @@ mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'list_directory',
-        description: 'List files and directories in a given path',
+        description: 'List files and directories in a given path (defaults to allowed directory)',
         inputSchema: {
           type: 'object',
           properties: {
             path: {
               type: 'string',
-              description: 'The directory path to list',
+              description: 'The directory path to list (optional, defaults to allowed directory)',
             },
           },
-          required: ['path'],
+          required: [],
         },
       },
       {
@@ -181,6 +191,15 @@ mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['path'],
         },
       },
+      {
+        name: 'pwd',
+        description: 'Get the current allowed directory path',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
     ],
   };
 });
@@ -192,7 +211,8 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'list_directory': {
-        const dirPath = getSafePath(args?.path as string || '.');
+        const requestedPath = args?.path as string;
+        const dirPath = requestedPath ? getSafePath(requestedPath) : allowedDirectory;
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
         const result = await Promise.all(
           entries.map(async (entry) => {
@@ -202,15 +222,19 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
               name: entry.name,
               type: entry.isDirectory() ? 'directory' : 'file',
               size: stats.size,
-              modified: stats.mtime.toISOString(),
+              modified: formatDate(stats.mtime),
             };
           })
         );
+        const response = {
+          path: dirPath,
+          files: result
+        };
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(response, null, 2),
             },
           ],
         };
@@ -269,6 +293,17 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: `Successfully deleted ${targetPath}`,
+            },
+          ],
+        };
+      }
+
+      case 'pwd': {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: allowedDirectory,
             },
           ],
         };
@@ -355,16 +390,16 @@ app.post('/mcp', async (req, res) => {
           tools: [
             {
               name: 'list_directory',
-              description: 'List files and directories in a given path',
+              description: 'List files and directories in a given path (defaults to allowed directory)',
               inputSchema: {
                 type: 'object',
                 properties: {
                   path: {
                     type: 'string',
-                    description: 'The directory path to list',
+                    description: 'The directory path to list (optional, defaults to allowed directory)',
                   },
                 },
-                required: ['path'],
+                required: [],
               },
             },
             {
@@ -427,6 +462,15 @@ app.post('/mcp', async (req, res) => {
                 required: ['path'],
               },
             },
+            {
+              name: 'pwd',
+              description: 'Get the current allowed directory path',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+              },
+            },
           ],
         },
       });
@@ -438,7 +482,8 @@ app.post('/mcp', async (req, res) => {
         let result;
         switch (name) {
           case 'list_directory': {
-            const dirPath = getSafePath(args.path as string || '.');
+            const requestedPath = args?.path as string;
+            const dirPath = requestedPath ? getSafePath(requestedPath) : allowedDirectory;
             const entries = await fs.readdir(dirPath, { withFileTypes: true });
             const fileList = await Promise.all(
               entries.map(async (entry) => {
@@ -448,15 +493,19 @@ app.post('/mcp', async (req, res) => {
                   name: entry.name,
                   type: entry.isDirectory() ? 'directory' : 'file',
                   size: stats.size,
-                  modified: stats.mtime.toISOString(),
+                  modified: formatDate(stats.mtime),
                 };
               })
             );
+            const response = {
+              path: dirPath,
+              files: fileList
+            };
             result = {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify(fileList, null, 2),
+                  text: JSON.stringify(response, null, 2),
                 },
               ],
             };
@@ -519,6 +568,18 @@ app.post('/mcp', async (req, res) => {
                 {
                   type: 'text',
                   text: `Successfully deleted ${targetPath}`,
+                },
+              ],
+            };
+            break;
+          }
+
+          case 'pwd': {
+            result = {
+              content: [
+                {
+                  type: 'text',
+                  text: allowedDirectory,
                 },
               ],
             };
