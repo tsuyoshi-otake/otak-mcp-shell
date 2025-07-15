@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>MCP Server CORS Test</h1>
+    <button onclick="testInitialize()">Test Initialize</button>
+    <button onclick="testNotification()">Test Notification</button>
+    <button onclick="testTools()">Test Tools</button>
+    <pre id="output"></pre>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        async function testInitialize() {
+            try {
+                const response = await fetch('http://localhost:3000/mcp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        method: 'initialize',
+                        params: {
+                            protocolVersion: '2025-06-18',
+                            capabilities: {},
+                            clientInfo: { name: 'test', version: '1.0.0' }
+                        },
+                        jsonrpc: '2.0',
+                        id: 1
+                    })
+                });
+                const data = await response.json();
+                output.textContent = 'Initialize Response:\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'Initialize Error:\n' + error.toString();
+            }
+        }
+        
+        async function testNotification() {
+            try {
+                const response = await fetch('http://localhost:3000/mcp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        method: 'notifications/initialized',
+                        params: {},
+                        jsonrpc: '2.0'
+                    })
+                });
+                const text = await response.text();
+                output.textContent = 'Notification Response:\n' + (text || '(empty response)');
+            } catch (error) {
+                output.textContent = 'Notification Error:\n' + error.toString();
+            }
+        }
+        
+        async function testTools() {
+            try {
+                const response = await fetch('http://localhost:3000/mcp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        method: 'tools/list',
+                        params: {},
+                        jsonrpc: '2.0',
+                        id: 2
+                    })
+                });
+                const data = await response.json();
+                output.textContent = 'Tools Response:\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'Tools Error:\n' + error.toString();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "otak-mcp-filesystem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/index.ts",
+    "dev:http": "nodemon --exec tsx src/http-server.ts",
+    "dev:mcp": "nodemon --exec tsx src/mcp-http-server.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:http": "node dist/http-server.js",
+    "start:mcp": "node dist/mcp-http-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.14",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
