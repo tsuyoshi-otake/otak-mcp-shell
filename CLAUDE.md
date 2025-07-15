@@ -67,6 +67,8 @@ All servers implement these filesystem tools:
 - `write_file`: Write content to files
 - `create_directory`: Create directories (recursive)
 - `delete_file`: Delete files or directories
+- `rename_file`: Rename or move files and directories
+- `search_files`: Fast file search with wildcard patterns (*, ?) and recursive search
 
 The HTTP server additionally provides SSE endpoints:
 - `/stream/watch`: Watch for file/directory changes

@@ -177,6 +177,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'rename_file',
+        description: 'Rename or move a file or directory',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            oldPath: {
+              type: 'string',
+              description: 'The current file or directory path',
+            },
+            newPath: {
+              type: 'string',
+              description: 'The new file or directory path',
+            },
+          },
+          required: ['oldPath', 'newPath'],
+        },
+      },
+      {
+        name: 'search_files',
+        description: 'Search for files and directories by name pattern',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pattern: {
+              type: 'string',
+              description: 'The search pattern (supports wildcards: * and ?)',
+            },
+            path: {
+              type: 'string',
+              description: 'The directory path to search in (optional, defaults to allowed directory)',
+            },
+            recursive: {
+              type: 'boolean',
+              description: 'Whether to search recursively in subdirectories (default: true)',
+            },
+          },
+          required: ['pattern'],
+        },
+      },
+      {
         name: 'pwd',
         description: 'Get the current allowed directory path',
         inputSchema: {
@@ -282,6 +322,73 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'rename_file': {
+        const oldPath = getSafePath(args?.oldPath as string);
+        const newPath = getSafePath(args?.newPath as string);
+        
+        await fs.rename(oldPath, newPath);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully renamed ${oldPath.replace(/\\/g, '/')} to ${newPath.replace(/\\/g, '/')}.`,
+            },
+          ],
+        };
+      }
+      
+      case 'search_files': {
+        const pattern = args?.pattern as string;
+        const searchPath = args?.path ? getSafePath(args.path as string) : allowedDirectory;
+        const recursive = args?.recursive !== false; // default to true
+        
+        const results: Array<{name: string, path: string, type: string}> = [];
+        
+        async function searchInDirectory(dirPath: string, currentDepth: number = 0) {
+          try {
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            
+            for (const entry of entries) {
+              const fullPath = path.join(dirPath, entry.name);
+              const relativePath = path.relative(allowedDirectory, fullPath);
+              
+              // Simple wildcard matching
+              const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+              
+              if (regex.test(entry.name)) {
+                results.push({
+                  name: entry.name,
+                  path: fullPath.replace(/\\/g, '/'),
+                  type: entry.isDirectory() ? 'directory' : 'file'
+                });
+              }
+              
+              if (recursive && entry.isDirectory() && currentDepth < 10) { // Prevent infinite recursion
+                await searchInDirectory(fullPath, currentDepth + 1);
+              }
+            }
+          } catch (error) {
+            // Skip directories that can't be read
+          }
+        }
+        
+        await searchInDirectory(searchPath);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                pattern,
+                searchPath: searchPath.replace(/\\/g, '/'),
+                results: results.slice(0, 100) // Limit to 100 results
+              }, null, 2),
+            },
+          ],
+        };
+      }
+      
       case 'pwd': {
         return {
           content: [
