@@ -518,7 +518,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', name: 'filesystem-mcp-server', version: '1.0.0' });
 });
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '8765', 10);
 const HOST = process.env.HOST || 'localhost';
 
 app.listen(PORT, HOST, () => {

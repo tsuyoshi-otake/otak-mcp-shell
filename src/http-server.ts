@@ -305,7 +305,7 @@ app.get('/stream/tail', async (req, res) => {
   });
 });
 
-const PORT = parseInt(process.env.PORT || '3456', 10);
+const PORT = parseInt(process.env.PORT || '8766', 10);
 const HOST = process.env.HOST || 'localhost';
 
 app.listen(PORT, HOST, () => {

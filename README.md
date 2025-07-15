@@ -61,12 +61,12 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
 
 ### HTTPサーバー（カスタムAPI）
 ```bash
-npm run dev:http  # ポート 3456
+npm run dev:http  # ポート 8766
 ```
 
 ### MCP HTTP/SSEサーバー（Claude連携用）
 ```bash
-npm run dev:mcp  # ポート 3000
+npm run dev:mcp  # ポート 8765
 ```
 
 
