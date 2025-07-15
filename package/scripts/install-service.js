@@ -11,16 +11,7 @@ if (os.platform() !== 'win32') {
   process.exit(1);
 }
 
-// node-windowsの動的読み込み
-let Service;
-try {
-  Service = require('node-windows').Service;
-} catch (error) {
-  console.error('❌ node-windows module is not available.');
-  console.error('Please install it manually: npm install -g node-windows');
-  console.error('Original error:', error.message);
-  process.exit(1);
-}
+const Service = require('node-windows').Service;
 
 // 設定読み込み
 function loadConfig() {
