@@ -41,15 +41,52 @@ JSON形式の引数で `allowedDirectory` を指定することで、アクセ�
 
 ## インストール
 
+### NPMパッケージとしてインストール（推奨）
+
 ```bash
+# グローバルインストール
+npm install -g @tsuyoshi-otake/mcp-filesystem
+
+# または一回だけ実行
+npx @tsuyoshi-otake/mcp-filesystem
+```
+
+### ソースコードからの開発用インストール
+
+```bash
+git clone https://github.com/tsuyoshi-otake/otak-mcp-filesystem.git
+cd otak-mcp-filesystem
 npm install
+npm run build
 ```
 
 ## 使用方法
 
 ### MCP標準サーバー (stdio)
 
+#### NPMパッケージから実行
+
 デフォルト設定（Desktop/Otakのみアクセス可能）:
+```bash
+# グローバルインストール後
+mcp-filesystem
+
+# または直接実行
+npx @tsuyoshi-otake/mcp-filesystem
+```
+
+カスタムディレクトリを指定:
+```bash
+# グローバルインストール後
+mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
+
+# または直接実行
+npx @tsuyoshi-otake/mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
+```
+
+#### ソースコードから実行
+
+デフォルト設定:
 ```bash
 npm run dev
 ```
@@ -61,7 +98,9 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
 
 ### Claude Desktop設定例
 
-#### デフォルト設定（推奨）
+#### NPMパッケージを使用（推奨）
+
+**デフォルト設定**
 ```json
 {
   "mcpServers": {
@@ -76,7 +115,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
 ```
 この設定では `~/Desktop/Otak` ディレクトリが自動的に作成され、使用されます。
 
-#### カスタムディレクトリを指定する場合
+**カスタムディレクトリを指定する場合**
 ```json
 {
   "mcpServers": {
@@ -91,13 +130,39 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
 }
 ```
 
+**グローバルインストール後の設定**
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "mcp-filesystem",
+      "args": [
+        "{\"allowedDirectory\": \"/path/to/your/directory\"}"
+      ]
+    }
+  }
+}
+```
+
 ### HTTPサーバー（カスタムAPI）
+
+#### NPMパッケージから実行
 ```bash
+# グローバルインストール後
+npm start:http
+
+# または直接実行（要ソースコード）
 npm run dev:http  # ポート 8766
 ```
 
 ### MCP HTTP/SSEサーバー（Claude連携用）
+
+#### NPMパッケージから実行
 ```bash
+# グローバルインストール後
+npm start:mcp
+
+# または直接実行（要ソースコード）
 npm run dev:mcp  # ポート 8765
 ```
 
@@ -176,15 +241,22 @@ GET /stream/tail?path=/path/to/file.log
 
 **注意**: すべてのパスは許可されたディレクトリからの相対パス、または許可されたディレクトリ内の絶対パスである必要があります。
 
-## ビルド
+## ビルド（開発者向け）
 
 ```bash
 npm run build
 ```
 
-## プロダクション実行
+## プロダクション実行（開発者向け）
 
 ```bash
 npm start        # stdio版
 npm start:http   # HTTP版
+npm start:mcp    # MCP HTTP/SSE版
 ```
+
+## NPMパッケージの公開
+
+GitHub Actionsを使用した自動公開:
+1. **手動でバージョンアップ**: GitHub Actions > "Publish to NPM" > "Run workflow"
+2. **タグを使用**: `git tag v1.0.1 && git push origin v1.0.1`
