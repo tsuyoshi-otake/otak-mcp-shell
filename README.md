@@ -271,23 +271,20 @@ Windows環境でMCPサーバーを常駐サービスとして動作させるこ�
 ### サービスのインストール
 
 ```bash
-# パッケージをインストール
+# パッケージをグローバルインストール
 npm install -g otak-mcp-filesystem
 
-# ビルド（ソースコードから実行する場合）
-npm run build
-
 # デフォルト設定でサービスインストール（stdio MCP server）
-npm run service:install
+otak-mcp-filesystem-service install
 
 # カスタムディレクトリを指定してインストール
-npm run service:install '{"allowedDirectory": "C:\\Users\\username\\Documents\\MyProject"}'
+otak-mcp-filesystem-service install '{"allowedDirectory": "C:\\Users\\username\\Documents\\MyProject"}'
 
 # HTTP サーバーとしてインストール
-npm run service:install:http
+otak-mcp-filesystem-service install '{"serverType": "http"}'
 
 # MCP HTTP/SSE サーバーとしてインストール
-npm run service:install:mcp
+otak-mcp-filesystem-service install '{"serverType": "mcp"}'
 ```
 
 ### サービスの管理
@@ -303,7 +300,7 @@ net stop OtakMCPFilesystem
 sc query OtakMCPFilesystem
 
 # サービスのアンインストール
-npm run service:uninstall
+otak-mcp-filesystem-service uninstall
 ```
 
 ### サービス設定オプション

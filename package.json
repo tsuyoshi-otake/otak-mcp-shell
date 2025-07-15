@@ -1,12 +1,13 @@
 {
   "name": "otak-mcp-filesystem",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP server for filesystem operations with SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {
     "otak-mcp-filesystem": "./dist/index.js",
     "otak-mcp-filesystem-http": "./dist/http-server.js",
-    "otak-mcp-filesystem-mcp": "./dist/mcp-http-server.js"
+    "otak-mcp-filesystem-mcp": "./dist/mcp-http-server.js",
+    "otak-mcp-filesystem-service": "./scripts/service-manager.js"
   },
   "files": [
     "dist/**/*",
