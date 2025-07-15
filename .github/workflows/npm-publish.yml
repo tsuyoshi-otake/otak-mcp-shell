@@ -52,13 +52,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: |
             ## Changes
             
@@ -66,12 +66,13 @@ jobs:
             
             ### Installation
             ```bash
-            npm install @tsuyoshi-otake/mcp-filesystem
+            npm install otak-mcp-filesystem
             ```
             
             ### Usage
             ```bash
-            npx @tsuyoshi-otake/mcp-filesystem
+            npx otak-mcp-filesystem
             ```
           draft: false
           prerelease: false
+        continue-on-error: true
