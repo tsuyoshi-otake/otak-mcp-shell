@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 
-const Service = require('node-windows').Service;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+
+// Windows プラットフォームチェック
+if (os.platform() !== 'win32') {
+  console.error('❌ Windows service installation is only supported on Windows platform.');
+  console.error('Current platform:', os.platform());
+  process.exit(1);
+}
+
+const Service = require('node-windows').Service;
 
 // 設定読み込み
 function loadConfig() {

@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 
-const Service = require('node-windows').Service;
 const path = require('path');
+const os = require('os');
+
+// Windows プラットフォームチェック
+if (os.platform() !== 'win32') {
+  console.error('❌ Windows service uninstallation is only supported on Windows platform.');
+  console.error('Current platform:', os.platform());
+  process.exit(1);
+}
+
+const Service = require('node-windows').Service;
 
 function main() {
   const args = process.argv.slice(2);
