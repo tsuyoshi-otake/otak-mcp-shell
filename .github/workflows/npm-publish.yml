@@ -66,13 +66,26 @@ jobs:
             
             ### Installation
             ```bash
-            npm install otak-mcp-filesystem
+            npm install otak-mcp-shell
             ```
             
             ### Usage
             ```bash
-            npx otak-mcp-filesystem
+            # Shell MCP Server (stdio mode)
+            npx otak-mcp-shell
+            
+            # HTTP Server mode (port 8768)
+            npx otak-mcp-shell-http
+            
+            # MCP over HTTP mode (port 8767)
+            npx otak-mcp-shell-mcp
             ```
+            
+            ### Features
+            - Secure shell command execution with restrictions
+            - Support for stdio, HTTP, and MCP over HTTP modes
+            - Built-in security to block dangerous commands
+            - Cross-platform support (Windows/Unix)
           draft: false
           prerelease: false
         continue-on-error: true
