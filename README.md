@@ -45,10 +45,10 @@ JSON形式の引数で `allowedDirectory` を指定することで、アクセ�
 
 ```bash
 # グローバルインストール
-npm install -g @tsuyoshi-otake/mcp-filesystem
+npm install -g otak-mcp-filesystem
 
 # または一回だけ実行
-npx @tsuyoshi-otake/mcp-filesystem
+npx otak-mcp-filesystem
 ```
 
 ### ソースコードからの開発用インストール
@@ -72,7 +72,7 @@ npm run build
 mcp-filesystem
 
 # または直接実行
-npx @tsuyoshi-otake/mcp-filesystem
+npx otak-mcp-filesystem
 ```
 
 カスタムディレクトリを指定:
@@ -81,7 +81,7 @@ npx @tsuyoshi-otake/mcp-filesystem
 mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
 
 # または直接実行
-npx @tsuyoshi-otake/mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
+npx otak-mcp-filesystem '{"allowedDirectory": "/path/to/allowed/directory"}'
 ```
 
 #### ソースコードから実行
@@ -107,7 +107,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
     "filesystem": {
       "command": "npx",
       "args": [
-        "@tsuyoshi-otake/mcp-filesystem"
+        "otak-mcp-filesystem"
       ]
     }
   }
@@ -122,7 +122,7 @@ npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
     "filesystem": {
       "command": "npx",
       "args": [
-        "@tsuyoshi-otake/mcp-filesystem",
+        "otak-mcp-filesystem",
         "{\"allowedDirectory\": \"C:/Users/username/Documents/MyProject\"}"
       ]
     }

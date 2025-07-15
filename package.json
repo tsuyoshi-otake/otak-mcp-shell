@@ -1,5 +1,5 @@
 {
-  "name": "@tsuyoshi-otake/mcp-filesystem",
+  "name": "otak-mcp-filesystem",
   "version": "1.0.0",
   "description": "MCP server for filesystem operations with SSE/HTTP streaming support",
   "main": "dist/index.js",
