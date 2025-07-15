@@ -374,6 +374,35 @@ app.get('/mcp', (req, res) => {
   });
 });
 
+// MCPエンドポイント - POST (JSON-RPC requests)
+app.post('/mcp', express.json(), async (req, res) => {
+  try {
+    console.log('MCP POST request received:', req.body);
+    
+    // 基本的なJSON-RPCレスポンス
+    const response = {
+      jsonrpc: "2.0",
+      id: req.body.id || null,
+      result: {
+        message: "MCP HTTP endpoint - use SSE endpoint for full MCP protocol",
+        redirect: "/sse"
+      }
+    };
+    
+    res.json(response);
+  } catch (error) {
+    console.error('MCP request error:', error);
+    res.status(500).json({
+      jsonrpc: "2.0",
+      id: req.body?.id || null,
+      error: {
+        code: -32603,
+        message: "Internal error"
+      }
+    });
+  }
+});
+
 // MCPエンドポイント - SSE接続
 app.get('/sse', async (req, res) => {
   res.writeHead(200, {
