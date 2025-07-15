@@ -62,13 +62,38 @@ HOST=0.0.0.0 npm run dev:mcp
 ## Available Tools
 
 All servers implement these filesystem tools:
-- `list_directory`: List files/directories with metadata
-- `read_file`: Read file contents
-- `write_file`: Write content to files
-- `create_directory`: Create directories (recursive)
-- `delete_file`: Delete files or directories
-- `rename_file`: Rename or move files and directories
-- `search_files`: Fast file search with wildcard patterns (*, ?) and recursive search
+
+- `LS`: List files/directories with metadata
+  - Example: `{"path": "src"}` - List contents of src directory
+- `Read`: Read file contents with optional offset and limit for partial reading
+  - Example: `{"path": "package.json"}` - Read entire file
+  - Example: `{"path": "large-file.txt", "offset": 100, "limit": 50}` - Read 50 lines starting from line 100
+- `Write`: Write content to files
+  - Example: `{"path": "test.txt", "content": "Hello World"}` - Create/overwrite file
+- `Create`: Create directories (recursive)
+  - Example: `{"path": "src/components"}` - Create nested directories
+- `Delete`: Delete files or directories
+  - Example: `{"path": "old-file.txt"}` - Delete specific file
+- `Rename`: Rename or move files and directories
+  - Example: `{"oldPath": "old.txt", "newPath": "new.txt"}` - Rename file
+- `Copy`: Copy files or directories to another location with recursive support
+  - Example: `{"source": "src/", "destination": "backup/src/"}` - Copy directory
+- `Stat`: Get detailed file information including size, timestamps, and permissions
+  - Example: `{"path": "package.json"}` - Get file metadata
+- `Tail`: Get the last N lines of a file (useful for log files)
+  - Example: `{"path": "app.log", "lines": 20}` - Get last 20 lines
+- `Edit`: Partially update files using find-and-replace operations
+  - Example: `{"path": "config.js", "old_text": "port: 3000", "new_text": "port: 8080"}` - Replace text
+- `MultiEdit`: Perform multiple find-and-replace operations on a single file atomically
+  - Example: `{"path": "config.js", "edits": [{"old_text": "port: 3000", "new_text": "port: 8080"}, {"old_text": "dev", "new_text": "production"}]}` - Multiple edits
+- `Search`: Fast file pattern matching with glob patterns, sorted by modification time
+  - Example: `{"pattern": "**/*.js"}` - Find all JS files, `{"pattern": "src/**/*.ts"}` - Find TypeScript files in src
+- `Glob`: High-performance file search with wildcard patterns (*, ?) and parallel directory traversal
+  - Example: `{"pattern": "*.js", "recursive": true}` - Find all JavaScript files
+- `Grep`: High-performance text search within files with regex support, parallel file processing, case sensitivity options, and file filtering
+  - Example: `{"pattern": "function.*Error", "filePattern": "*.js"}` - Find error functions in JS files
+- `PWD`: Get the current allowed directory path
+  - Example: `{}` - Returns the current allowed directory path
 
 The HTTP server additionally provides SSE endpoints:
 - `/stream/watch`: Watch for file/directory changes
@@ -82,11 +107,11 @@ The codebase is structured around three main server implementations that share c
 
 1. **Path Security System**: All servers implement path validation with `isPathAllowed()` and `getSafePath()` functions to prevent directory traversal attacks
 2. **Common Tool Set**: Five filesystem tools are implemented identically across all servers:
-   - `list_directory`: Returns file/directory metadata with normalized paths
-   - `read_file`: Reads file contents with security validation
-   - `write_file`: Writes content with automatic directory creation
-   - `create_directory`: Creates directories recursively
-   - `delete_file`: Deletes files or directories with validation
+   - `LS`: Returns file/directory metadata with normalized paths
+   - `Read`: Reads file contents with security validation
+   - `Write`: Writes content with automatic directory creation
+   - `Create`: Creates directories recursively
+   - `Delete`: Deletes files or directories with validation
 
 3. **Shared Security Logic**: 
    - Path normalization (backslash to forward slash conversion)
