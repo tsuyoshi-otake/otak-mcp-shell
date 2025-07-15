@@ -168,7 +168,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'list_directory': {
-        const dirPath = getSafePath(args.path as string || '.');
+        const dirPath = getSafePath(args?.path as string || '.');
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
         const result = await Promise.all(
           entries.map(async (entry) => {
@@ -193,7 +193,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'read_file': {
-        const filePath = getSafePath(args.path as string);
+        const filePath = getSafePath(args?.path as string);
         const content = await fs.readFile(filePath, 'utf-8');
         return {
           content: [
@@ -206,8 +206,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'write_file': {
-        const filePath = getSafePath(args.path as string);
-        const content = args.content as string;
+        const filePath = getSafePath(args?.path as string);
+        const content = args?.content as string;
         await fs.writeFile(filePath, content, 'utf-8');
         return {
           content: [
@@ -220,7 +220,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'create_directory': {
-        const dirPath = getSafePath(args.path as string);
+        const dirPath = getSafePath(args?.path as string);
         await fs.mkdir(dirPath, { recursive: true });
         return {
           content: [
@@ -233,7 +233,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_file': {
-        const targetPath = getSafePath(args.path as string);
+        const targetPath = getSafePath(args?.path as string);
         const stats = await fs.stat(targetPath);
         if (stats.isDirectory()) {
           await fs.rm(targetPath, { recursive: true, force: true });
