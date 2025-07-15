@@ -28,7 +28,9 @@ function main() {
   if (args.length > 0) {
     try {
       const config = JSON.parse(args[0]);
-      serviceName = config.serviceName || serviceName;
+      if (config.serviceName !== null && config.serviceName !== undefined) {
+        serviceName = config.serviceName;
+      }
     } catch (error) {
       console.error('Invalid configuration JSON:', error.message);
       process.exit(1);

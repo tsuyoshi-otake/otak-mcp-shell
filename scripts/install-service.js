@@ -36,11 +36,23 @@ function loadConfig() {
   if (args.length > 0) {
     try {
       const userConfig = JSON.parse(args[0]);
-      config = { ...config, ...userConfig };
+      // null値を除外してマージ
+      Object.keys(userConfig).forEach(key => {
+        if (userConfig[key] !== null && userConfig[key] !== undefined) {
+          config[key] = userConfig[key];
+        }
+      });
     } catch (error) {
       console.error('Invalid configuration JSON:', error.message);
       process.exit(1);
     }
+  }
+
+  // サーバータイプに応じてサービス名を自動調整
+  if (config.serverType !== 'stdio') {
+    const typeMap = { http: 'HTTP', mcp: 'MCP' };
+    config.serviceName = `OtakMCPFilesystem${typeMap[config.serverType] || ''}`;
+    config.displayName = `Otak MCP Filesystem ${typeMap[config.serverType] || ''} Server`;
   }
 
   return config;
