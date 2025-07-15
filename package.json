@@ -1,13 +1,13 @@
 {
-  "name": "otak-mcp-filesystem",
-  "version": "1.3.3",
-  "description": "MCP server for filesystem operations with SSE/HTTP streaming support",
+  "name": "otak-mcp-shell",
+  "version": "1.0.0",
+  "description": "MCP server for shell command execution with SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {
-    "otak-mcp-filesystem": "./dist/index.js",
-    "otak-mcp-filesystem-http": "./dist/http-server.js",
-    "otak-mcp-filesystem-mcp": "./dist/mcp-http-server.js",
-    "otak-mcp-filesystem-service": "./scripts/service-manager.js"
+    "otak-mcp-shell": "./dist/index.js",
+    "otak-mcp-shell-http": "./dist/http-server.js",
+    "otak-mcp-shell-mcp": "./dist/mcp-http-server.js",
+    "otak-mcp-shell-service": "./scripts/service-manager.js"
   },
   "files": [
     "dist/**/*",
@@ -16,11 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/tsuyoshi-otake/otak-mcp-filesystem.git"
+    "url": "https://github.com/tsuyoshi-otake/otak-mcp-shell.git"
   },
-  "homepage": "https://github.com/tsuyoshi-otake/otak-mcp-filesystem#readme",
+  "homepage": "https://github.com/tsuyoshi-otake/otak-mcp-shell#readme",
   "bugs": {
-    "url": "https://github.com/tsuyoshi-otake/otak-mcp-filesystem/issues"
+    "url": "https://github.com/tsuyoshi-otake/otak-mcp-shell/issues"
   },
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
@@ -34,13 +34,14 @@
     "prepublishOnly": "npm run build",
     "service:install": "node scripts/install-service.js",
     "service:uninstall": "node scripts/uninstall-service.js",
-    "service:install:http": "node scripts/install-service.js '{\"serverType\": \"http\", \"serviceName\": \"OtakMCPFilesystemHTTP\", \"displayName\": \"Otak MCP Filesystem HTTP Server\"}'",
-    "service:install:mcp": "node scripts/install-service.js '{\"serverType\": \"mcp\", \"serviceName\": \"OtakMCPFilesystemMCP\", \"displayName\": \"Otak MCP Filesystem MCP Server\"}'"
+    "service:install:http": "node scripts/install-service.js '{\"serverType\": \"http\", \"serviceName\": \"OtakMCPShellHTTP\", \"displayName\": \"Otak MCP Shell HTTP Server\"}'",
+    "service:install:mcp": "node scripts/install-service.js '{\"serverType\": \"mcp\", \"serviceName\": \"OtakMCPShellMCP\", \"displayName\": \"Otak MCP Shell MCP Server\"}'"
   },
   "keywords": [
     "mcp",
     "model-context-protocol",
-    "filesystem",
+    "shell",
+    "command-execution",
     "sse",
     "streaming"
   ],
