@@ -50,3 +50,29 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes
+            
+            Automated release for version ${{ github.ref_name }}
+            
+            ### Installation
+            ```bash
+            npm install otak-mcp-filesystem
+            ```
+            
+            ### Usage
+            ```bash
+            npx otak-mcp-filesystem
+            ```
+          draft: false
+          prerelease: false
+        continue-on-error: true
