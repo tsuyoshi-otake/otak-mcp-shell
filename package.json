@@ -1,6 +1,6 @@
 {
   "name": "otak-mcp-shell",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "Windows PowerShell MCP server with system directory protection and SSE/HTTP streaming support",
   "main": "dist/index.js",
   "bin": {

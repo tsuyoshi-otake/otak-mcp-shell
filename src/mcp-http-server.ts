@@ -55,14 +55,54 @@ const PROTECTED_DIRECTORIES = [
 function isCommandSafe(command: string): boolean {
   const lowerCommand = command.toLowerCase().trim();
   
-  // 削除、移動、リネーム系のコマンドをチェック
+  // 削除、移動、リネーム、権限変更系のコマンドをチェック
   const destructivePatterns = [
-    /(?:remove-item|rm|del|erase)\s+.*[c-z]:\\/i,  // ドライブルートの削除
-    /(?:remove-item|rm|del|erase)\s+.*windows/i,   // Windowsディレクトリ
-    /(?:remove-item|rm|del|erase)\s+.*program\s*files/i, // Program Files
+    // 基本的な削除コマンド
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*[c-z]:\\/i,  // ドライブルートの削除
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*windows/i,   // Windowsディレクトリ
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*program\s*files/i, // Program Files
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*system32/i,  // System32
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*syswow64/i,  // SysWOW64
+    
+    // 移動・リネーム
     /(?:move-item|mv|move|ren|rename)\s+.*[c-z]:\\/i,    // ドライブルートの移動
     /(?:move-item|mv|move|ren|rename)\s+.*windows/i,     // Windowsディレクトリ
     /(?:move-item|mv|move|ren|rename)\s+.*program\s*files/i, // Program Files
+    /(?:move-item|mv|move|ren|rename)\s+.*system32/i,    // System32
+    
+    // 再帰的コピー（潜在的に危険）
+    /copy-item\s+.*-recurse.*[c-z]:\\/i,                 // ドライブルートへの再帰コピー
+    /copy-item\s+.*-recurse.*windows/i,                  // Windowsディレクトリへの再帰コピー
+    /copy-item\s+.*-recurse.*program\s*files/i,          // Program Filesへの再帰コピー
+    
+    // 権限変更
+    /icacls\s+.*[c-z]:\\/i,                              // ドライブルートの権限変更
+    /icacls\s+.*windows/i,                               // Windowsディレクトリの権限変更
+    /icacls\s+.*program\s*files/i,                       // Program Filesの権限変更
+    /icacls\s+.*system32/i,                              // System32の権限変更
+    
+    // ワイルドカードを含む破壊的操作
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*\*.*[c-z]:\\/i, // ワイルドカード削除
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*\*.*windows/i,  // ワイルドカード削除
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*\*.*program\s*files/i, // ワイルドカード削除
+    /(?:remove-item|rm|del|erase|rmdir|rd)\s+.*\*.*system32/i, // ワイルドカード削除
+    
+    // システム関連の危険なコマンド
+    /format\s+[c-z]:/i,                                  // ドライブのフォーマット
+    /sdelete/i,                                          // セキュア削除
+    /cipher\s+.*\/w/i,                                   // ワイプ
+    /shutdown/i,                                         // システム終了
+    /restart-computer/i,                                 // 再起動
+    /stop-computer/i,                                    // システム停止
+    
+    // レジストリ操作
+    /reg\s+delete/i,                                     // レジストリ削除
+    /remove-itemproperty.*hklm/i,                        // HKLM レジストリ削除
+    /remove-itemproperty.*hkcu/i,                        // HKCU レジストリ削除
+    
+    // ネットワーク関連の危険な操作
+    /netsh.*delete/i,                                    // ネットワーク設定削除
+    /route\s+delete/i,                                   // ルート削除
   ];
   
   for (const pattern of destructivePatterns) {
@@ -84,14 +124,36 @@ interface CommandResult {
   duration: number;
 }
 
+// USモードでコマンドを実行するための関数
+function toUSMode(cmd: string): string {
+  const usPrefix = '[cultureinfo]::CurrentCulture="en-US";' +
+                   '[cultureinfo]::CurrentUICulture="en-US";' +
+                   'chcp 437;';
+  return `${usPrefix} ${cmd}`;
+}
+
 // コマンドを実行する関数（Windows専用）
 function executeCommand(command: string, workingDir: string): Promise<CommandResult> {
   return new Promise((resolve) => {
     const startTime = Date.now();
     
-    // Windows専用 - PowerShellを使用
+    // PowerShell 5.0互換性のためのコマンド変換
+    let processedCommand = command
+      .replace(/&&/g, ';')  // &&を;に置換
+      .trim();
+    
+    // USモードでコマンドを実行
+    processedCommand = toUSMode(processedCommand);
+    
+    // Windows専用 - PowerShellを使用（セキュアオプション）
     const shell = 'powershell.exe';
-    const shellArgs = ['-Command', command];
+    const shellArgs = [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy', 'Bypass',
+      '-Command',
+      processedCommand
+    ];
     
     const child = spawn(shell, shellArgs, {
       cwd: workingDir,
@@ -184,13 +246,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'Execute',
-        description: 'Execute a shell command in the allowed directory with security restrictions',
+        description: 'Execute a PowerShell command in the allowed directory with security restrictions. PowerShell 5.0互換のため&&禁止(自動で;置換)、シェル確認挿入、対話型CLIは--yes/-y等で非対話ワンライナー化し複数工程も1行連結、無効構文には注意コメントを添えること',
         inputSchema: {
           type: 'object',
           properties: {
             command: {
               type: 'string',
-              description: 'The shell command to execute',
+              description: 'The PowerShell command to execute. Use semicolon (;) instead of && for command chaining. Interactive commands should use -y or --yes flags.',
             },
             workingDir: {
               type: 'string',
@@ -202,13 +264,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'ListCommands',
-        description: 'Get a list of common safe commands that can be executed',
+        description: 'Get a list of common safe PowerShell commands that can be executed',
         inputSchema: {
           type: 'object',
           properties: {
             category: {
               type: 'string',
-              description: 'Filter commands by category (file, text, system, network, dev)',
+              description: 'Filter commands by category (file, text, system, network, dev, powershell)',
             },
           },
           required: [],
@@ -234,9 +296,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case 'Execute': {
         const command = args?.command as string;
-        const workingDir = args?.workingDir ? 
-          path.resolve(allowedDirectory, args.workingDir as string) : 
+        
+        // パストラバーサル対策強化
+        const workingDir = args?.workingDir ?
+          path.resolve(allowedDirectory, args.workingDir as string) :
           allowedDirectory;
+        
+        // 解決されたパスが許可されたディレクトリ内にあることを確認
+        if (!workingDir.startsWith(allowedDirectory)) {
+          throw new Error('Working directory outside allowed directory');
+        }
 
         if (!command) {
           throw new Error('Command is required');
@@ -273,29 +342,43 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         const commands = {
           file: [
-            'ls -la', 'dir', 'pwd', 'cd dirname',
-            'mkdir dirname', 'rmdir dirname', 'touch filename',
-            'cat filename', 'head filename', 'tail filename',
-            'cp source dest', 'mv source dest', 'rm filename'
+            'Get-ChildItem', 'Get-ChildItem -Force', 'Get-Location', 'Set-Location dirname',
+            'New-Item -ItemType Directory dirname', 'Remove-Item dirname', 'New-Item filename',
+            'Get-Content filename', 'Get-Content filename -Head 10', 'Get-Content filename -Tail 10',
+            'Copy-Item source dest', 'Move-Item source dest', 'Remove-Item filename',
+            'Test-Path filename', 'Resolve-Path filename'
           ],
           text: [
-            'grep pattern file', 'sed s/old/new/ file',
-            'awk {print $1} file', 'sort file', 'uniq file',
-            'wc file', 'echo text', 'find . -name pattern'
+            'Select-String pattern filename', 'Get-Content filename | ForEach-Object { $_ -replace "old","new" }',
+            'Get-Content filename | ForEach-Object { ($_ -split " ")[0] }', 'Get-Content filename | Sort-Object',
+            'Get-Content filename | Sort-Object | Get-Unique', 'Get-Content filename | Measure-Object -Line -Word -Character',
+            'Write-Output "text"', 'Get-ChildItem -Recurse -Filter "pattern"',
+            'Compare-Object (Get-Content file1) (Get-Content file2)'
           ],
           system: [
-            'whoami', 'date', 'uname -a', 'ps aux',
-            'top', 'df -h', 'du -sh', 'free -h',
-            'uptime', 'which command'
+            '$env:USERNAME', 'Get-Date', 'Get-ComputerInfo',
+            'Get-Process', 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 10',
+            'Get-WmiObject -Class Win32_LogicalDisk', 'Get-ChildItem | Measure-Object -Property Length -Sum',
+            'Get-WmiObject -Class Win32_OperatingSystem | Select-Object LastBootUpTime',
+            'Get-Command commandname', 'Get-Service', 'Get-EventLog -LogName System -Newest 10'
           ],
           network: [
-            'ping hostname', 'curl url', 'wget url',
-            'nslookup hostname', 'dig hostname'
+            'Test-NetConnection hostname', 'Invoke-WebRequest url',
+            'Invoke-WebRequest url -OutFile filename', 'Resolve-DnsName hostname',
+            'Test-NetConnection hostname -Port 80', 'Get-NetAdapter',
+            'Get-NetIPAddress', 'Get-NetRoute'
           ],
           dev: [
             'git status', 'git log --oneline', 'npm list',
-            'node --version', 'python --version',
-            'java -version', 'gcc --version'
+            'node --version', 'python --version', 'dotnet --version',
+            'Get-Module -ListAvailable', 'Get-InstalledModule',
+            'Get-PackageProvider', 'Get-Package'
+          ],
+          powershell: [
+            'Get-Help commandname', 'Get-Command *keyword*', 'Get-Member',
+            'Get-History', 'Get-Alias', 'Get-Variable',
+            'Get-ExecutionPolicy', 'Get-PSVersion', 'Get-Module',
+            'Import-Module modulename', 'Export-ModuleMember', 'Get-Credential'
           ]
         };
 
@@ -308,8 +391,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify({
-                description: 'Common safe commands by category',
-                note: 'These are examples of allowed commands. Dangerous operations are blocked.',
+                description: 'Common safe PowerShell commands by category for Windows 11 PowerShell 5.0',
+                note: 'These are PowerShell cmdlets and commands optimized for Windows environments. Dangerous operations are blocked.',
                 commands: result
               }, null, 2),
             },
@@ -429,13 +512,13 @@ app.post('/mcp', async (req, res) => {
           tools: [
             {
               name: 'Execute',
-              description: 'Execute a shell command in the allowed directory with security restrictions',
+              description: 'Execute a PowerShell command in the allowed directory with security restrictions. PowerShell 5.0互換のため&&禁止(自動で;置換)、シェル確認挿入、対話型CLIは--yes/-y等で非対話ワンライナー化し複数工程も1行連結、無効構文には注意コメントを添えること',
               inputSchema: {
                 type: 'object',
                 properties: {
                   command: {
                     type: 'string',
-                    description: 'The shell command to execute',
+                    description: 'The PowerShell command to execute. Use semicolon (;) instead of && for command chaining. Interactive commands should use -y or --yes flags.',
                   },
                   workingDir: {
                     type: 'string',
@@ -447,13 +530,13 @@ app.post('/mcp', async (req, res) => {
             },
             {
               name: 'ListCommands',
-              description: 'Get a list of common safe commands that can be executed',
+              description: 'Get a list of common safe PowerShell commands that can be executed',
               inputSchema: {
                 type: 'object',
                 properties: {
                   category: {
                     type: 'string',
-                    description: 'Filter commands by category (file, text, system, network, dev)',
+                    description: 'Filter commands by category (file, text, system, network, dev, powershell)',
                   },
                 },
                 required: [],
@@ -480,9 +563,16 @@ app.post('/mcp', async (req, res) => {
         switch (name) {
           case 'Execute': {
             const command = args?.command as string;
+            
+            // パストラバーサル対策強化
             const workingDir = args?.workingDir ?
               path.resolve(allowedDirectory, args.workingDir as string) :
               allowedDirectory;
+            
+            // 解決されたパスが許可されたディレクトリ内にあることを確認
+            if (!workingDir.startsWith(allowedDirectory)) {
+              throw new Error('Working directory outside allowed directory');
+            }
 
             if (!command) {
               throw new Error('Command is required');
@@ -520,29 +610,43 @@ app.post('/mcp', async (req, res) => {
             
             const commands = {
               file: [
-                'ls -la', 'dir', 'pwd', 'cd dirname',
-                'mkdir dirname', 'rmdir dirname', 'touch filename',
-                'cat filename', 'head filename', 'tail filename',
-                'cp source dest', 'mv source dest', 'rm filename'
+                'Get-ChildItem', 'Get-ChildItem -Force', 'Get-Location', 'Set-Location dirname',
+                'New-Item -ItemType Directory dirname', 'Remove-Item dirname', 'New-Item filename',
+                'Get-Content filename', 'Get-Content filename -Head 10', 'Get-Content filename -Tail 10',
+                'Copy-Item source dest', 'Move-Item source dest', 'Remove-Item filename',
+                'Test-Path filename', 'Resolve-Path filename'
               ],
               text: [
-                'grep pattern file', 'sed s/old/new/ file',
-                'awk {print $1} file', 'sort file', 'uniq file',
-                'wc file', 'echo text', 'find . -name pattern'
+                'Select-String pattern filename', 'Get-Content filename | ForEach-Object { $_ -replace "old","new" }',
+                'Get-Content filename | ForEach-Object { ($_ -split " ")[0] }', 'Get-Content filename | Sort-Object',
+                'Get-Content filename | Sort-Object | Get-Unique', 'Get-Content filename | Measure-Object -Line -Word -Character',
+                'Write-Output "text"', 'Get-ChildItem -Recurse -Filter "pattern"',
+                'Compare-Object (Get-Content file1) (Get-Content file2)'
               ],
               system: [
-                'whoami', 'date', 'uname -a', 'ps aux',
-                'top', 'df -h', 'du -sh', 'free -h',
-                'uptime', 'which command'
+                '$env:USERNAME', 'Get-Date', 'Get-ComputerInfo',
+                'Get-Process', 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 10',
+                'Get-WmiObject -Class Win32_LogicalDisk', 'Get-ChildItem | Measure-Object -Property Length -Sum',
+                'Get-WmiObject -Class Win32_OperatingSystem | Select-Object LastBootUpTime',
+                'Get-Command commandname', 'Get-Service', 'Get-EventLog -LogName System -Newest 10'
               ],
               network: [
-                'ping hostname', 'curl url', 'wget url',
-                'nslookup hostname', 'dig hostname'
+                'Test-NetConnection hostname', 'Invoke-WebRequest url',
+                'Invoke-WebRequest url -OutFile filename', 'Resolve-DnsName hostname',
+                'Test-NetConnection hostname -Port 80', 'Get-NetAdapter',
+                'Get-NetIPAddress', 'Get-NetRoute'
               ],
               dev: [
                 'git status', 'git log --oneline', 'npm list',
-                'node --version', 'python --version',
-                'java -version', 'gcc --version'
+                'node --version', 'python --version', 'dotnet --version',
+                'Get-Module -ListAvailable', 'Get-InstalledModule',
+                'Get-PackageProvider', 'Get-Package'
+              ],
+              powershell: [
+                'Get-Help commandname', 'Get-Command *keyword*', 'Get-Member',
+                'Get-History', 'Get-Alias', 'Get-Variable',
+                'Get-ExecutionPolicy', 'Get-PSVersion', 'Get-Module',
+                'Import-Module modulename', 'Export-ModuleMember', 'Get-Credential'
               ]
             };
 
@@ -555,8 +659,8 @@ app.post('/mcp', async (req, res) => {
                 {
                   type: 'text',
                   text: JSON.stringify({
-                    description: 'Common safe commands by category',
-                    note: 'These are examples of allowed commands. Dangerous operations are blocked.',
+                    description: 'Common safe PowerShell commands by category for Windows 11 PowerShell 5.0',
+                    note: 'These are PowerShell cmdlets and commands optimized for Windows environments. Dangerous operations are blocked.',
                     commands: cmdResult
                   }, null, 2),
                 },
