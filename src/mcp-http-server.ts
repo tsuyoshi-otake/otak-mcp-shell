@@ -227,7 +227,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
           })
         );
         const response = {
-          path: dirPath,
+          path: dirPath.replace(/\\/g, '/'),
           files: result
         };
         return {
@@ -261,7 +261,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `File written successfully to ${filePath}`,
+              text: `File written successfully to ${filePath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -274,7 +274,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `Directory created successfully at ${dirPath}`,
+              text: `Directory created successfully at ${dirPath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -292,7 +292,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `Successfully deleted ${targetPath}`,
+              text: `Successfully deleted ${targetPath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -303,7 +303,7 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: allowedDirectory,
+              text: allowedDirectory.replace(/\\/g, '/'),
             },
           ],
         };
@@ -498,7 +498,7 @@ app.post('/mcp', async (req, res) => {
               })
             );
             const response = {
-              path: dirPath,
+              path: dirPath.replace(/\\/g, '/'),
               files: fileList
             };
             result = {
@@ -534,7 +534,7 @@ app.post('/mcp', async (req, res) => {
               content: [
                 {
                   type: 'text',
-                  text: `File written successfully to ${filePath}`,
+                  text: `File written successfully to ${filePath.replace(/\\/g, '/')}`,
                 },
               ],
             };
@@ -548,7 +548,7 @@ app.post('/mcp', async (req, res) => {
               content: [
                 {
                   type: 'text',
-                  text: `Directory created successfully at ${dirPath}`,
+                  text: `Directory created successfully at ${dirPath.replace(/\\/g, '/')}`,
                 },
               ],
             };
@@ -567,7 +567,7 @@ app.post('/mcp', async (req, res) => {
               content: [
                 {
                   type: 'text',
-                  text: `Successfully deleted ${targetPath}`,
+                  text: `Successfully deleted ${targetPath.replace(/\\/g, '/')}`,
                 },
               ],
             };
@@ -579,7 +579,7 @@ app.post('/mcp', async (req, res) => {
               content: [
                 {
                   type: 'text',
-                  text: allowedDirectory,
+                  text: allowedDirectory.replace(/\\/g, '/'),
                 },
               ],
             };

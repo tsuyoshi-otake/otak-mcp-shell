@@ -114,7 +114,7 @@ async function handleToolCall(toolName: string, args: any) {
           })
         );
         const response = {
-          path: dirPath,
+          path: dirPath.replace(/\\/g, '/'),
           files: result
         };
         return { success: true, data: response };
@@ -130,13 +130,13 @@ async function handleToolCall(toolName: string, args: any) {
         const filePath = getSafePath(args.path as string);
         const content = args.content as string;
         await fs.writeFile(filePath, content, 'utf-8');
-        return { success: true, message: `File written successfully to ${filePath}` };
+        return { success: true, message: `File written successfully to ${filePath.replace(/\\/g, '/')}` };
       }
 
       case 'create_directory': {
         const dirPath = getSafePath(args.path as string);
         await fs.mkdir(dirPath, { recursive: true });
-        return { success: true, message: `Directory created successfully at ${dirPath}` };
+        return { success: true, message: `Directory created successfully at ${dirPath.replace(/\\/g, '/')}` };
       }
 
       case 'delete_file': {
@@ -147,11 +147,11 @@ async function handleToolCall(toolName: string, args: any) {
         } else {
           await fs.unlink(targetPath);
         }
-        return { success: true, message: `Successfully deleted ${targetPath}` };
+        return { success: true, message: `Successfully deleted ${targetPath.replace(/\\/g, '/')}` };
       }
 
       case 'pwd': {
-        return { success: true, data: allowedDirectory };
+        return { success: true, data: allowedDirectory.replace(/\\/g, '/') };
       }
 
       default:
@@ -291,7 +291,7 @@ app.get('/stream/watch', async (req, res) => {
     const stats = await fs.stat(safePath);
     sendEvent({
       type: 'initial',
-      path: safePath,
+      path: safePath.replace(/\\/g, '/'),
       exists: true,
       isDirectory: stats.isDirectory(),
       size: stats.size,

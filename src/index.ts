@@ -211,7 +211,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           })
         );
         const response = {
-          path: dirPath,
+          path: dirPath.replace(/\\/g, '/'),
           files: result
         };
         return {
@@ -245,7 +245,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `File written successfully to ${filePath}`,
+              text: `File written successfully to ${filePath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -258,7 +258,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `Directory created successfully at ${dirPath}`,
+              text: `Directory created successfully at ${dirPath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -276,7 +276,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: `Successfully deleted ${targetPath}`,
+              text: `Successfully deleted ${targetPath.replace(/\\/g, '/')}`,
             },
           ],
         };
@@ -287,7 +287,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: allowedDirectory,
+              text: allowedDirectory.replace(/\\/g, '/'),
             },
           ],
         };

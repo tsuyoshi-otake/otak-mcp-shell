@@ -38,6 +38,12 @@ npm run build
 npm start          # Run built stdio server
 npm start:http     # Run built HTTP server
 npm start:mcp      # Run built MCP HTTP/SSE server
+
+# Windows Service Management
+npm run service:install          # Install as Windows service (stdio)
+npm run service:install:http     # Install HTTP server as Windows service
+npm run service:install:mcp      # Install MCP HTTP/SSE server as Windows service
+npm run service:uninstall        # Uninstall Windows service
 ```
 
 ## Configuration
@@ -65,3 +71,42 @@ All servers implement these filesystem tools:
 The HTTP server additionally provides SSE endpoints:
 - `/stream/watch`: Watch for file/directory changes
 - `/stream/tail`: Tail log files with real-time updates
+
+## Code Architecture
+
+The codebase is structured around three main server implementations that share common filesystem tools:
+
+### Core Components
+
+1. **Path Security System**: All servers implement path validation with `isPathAllowed()` and `getSafePath()` functions to prevent directory traversal attacks
+2. **Common Tool Set**: Five filesystem tools are implemented identically across all servers:
+   - `list_directory`: Returns file/directory metadata with normalized paths
+   - `read_file`: Reads file contents with security validation
+   - `write_file`: Writes content with automatic directory creation
+   - `create_directory`: Creates directories recursively
+   - `delete_file`: Deletes files or directories with validation
+
+3. **Shared Security Logic**: 
+   - Path normalization (backslash to forward slash conversion)
+   - Tilde expansion (`~/` to home directory)
+   - Allowed directory validation
+   - Default directory creation (`~/Desktop/Otak`)
+
+### Server Implementations
+
+- **stdio server** (`src/index.ts`): Uses MCP SDK's StdioServerTransport
+- **HTTP server** (`src/http-server.ts`): Express-based REST API with SSE streaming
+- **MCP HTTP/SSE server** (`src/mcp-http-server.ts`): Hybrid using SSEServerTransport
+
+### Windows Service Support
+
+The `scripts/` directory contains Windows service management utilities using the `node-windows` package for production deployment scenarios.
+
+## Release Process
+
+The project uses GitHub Actions for automated NPM publishing:
+
+- **Automated releases**: Push tags matching `v*` pattern (e.g., `git tag v1.0.1 && git push origin v1.0.1`)
+- **Manual releases**: Use GitHub Actions "Publish to NPM" workflow with version bump options (patch/minor/major)
+- **Build validation**: All releases automatically run `npm ci`, `npm run build` before publishing
+- **GitHub releases**: Automatically created with installation and usage instructions
