@@ -15,7 +15,7 @@ interface Config {
 }
 
 // デフォルトディレクトリ
-const DEFAULT_DIR = path.join(os.homedir(), 'Desktop', 'SmileCHAT');
+const DEFAULT_DIR = path.join(os.homedir(), 'Desktop', 'Otak');
 
 // 許可されたディレクトリ
 let allowedDirectory: string = DEFAULT_DIR;
