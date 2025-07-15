@@ -23,7 +23,7 @@ try {
 
 function main() {
   const args = process.argv.slice(2);
-  let serviceName = 'OtakMCPFilesystem';
+  let serviceName = 'OtakMCPShell';
 
   // 環境変数から設定を読み込み
   if (process.env.SERVICE_NAME) serviceName = process.env.SERVICE_NAME;
@@ -43,7 +43,7 @@ function main() {
     }
   }
 
-  console.log(`Uninstalling Otak MCP Filesystem Windows Service...`);
+  console.log(`Uninstalling Otak MCP Shell Windows Service...`);
   console.log(`Service Name: ${serviceName}`);
 
   // サービス作成（アンインストール用）

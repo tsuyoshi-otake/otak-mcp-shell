@@ -181,7 +181,77 @@ npm run build
 npm test
 ```
 
-## Windows サービスとして実行
+## Windowsサービス化
+
+Windows環境でMCPサーバーを常駐サービスとして動作させることができます。
+
+### 前提条件
+- Windows OS
+- Node.js がインストールされている
+- 管理者権限でコマンドプロンプトを実行
+
+### サービスのインストール
+
+```powershell
+# パッケージをグローバルインストール
+npm install -g otak-mcp-shell
+
+# デフォルト設定でサービスインストール（stdio MCP server）
+otak-mcp-shell-service install
+
+# MCP HTTP/SSE サーバーとしてインストール
+otak-mcp-shell-service install --type mcp
+
+# HTTP サーバーとしてインストール
+otak-mcp-shell-service install --type http
+
+# カスタムディレクトリを指定してインストール
+otak-mcp-shell-service install --dir C:\Users\username\Documents\MyProject
+
+# 複数オプションの組み合わせ
+otak-mcp-shell-service install --type mcp --dir C:\Users\username\Desktop\SmileCHAT
+```
+
+### サービスの管理
+
+```powershell
+# サービス開始
+net start OtakMCPShell
+
+# サービス停止
+net stop OtakMCPShell
+
+# サービスの状態確認
+sc query OtakMCPShell
+
+# サービスのアンインストール
+otak-mcp-shell-service uninstall
+```
+
+### サービス設定オプション
+```json
+{
+  "allowedDirectory": "C:\\Users\\username\\Documents\\MyProject",
+  "serviceName": "OtakMCPShell",
+  "displayName": "Otak MCP Shell Server",
+  "description": "Windows PowerShell MCP server with system directory protection",
+  "serverType": "stdio"
+}
+```
+
+serverType オプション:
+- `stdio`: 標準入出力でMCPプロトコル（デフォルト）
+- `http`: HTTPサーバー（ポート8768）
+- `mcp`: MCP HTTP/SSEサーバー（ポート8767）
+
+### サービスログ
+Windowsサービスのログは Windows Event Viewer で確認できます：
+
+1. Windows Event Viewer を開く
+2. Windows Logs > Application を選択
+3. Source が `OtakMCPShell` のエントリを確認
+
+### 開発者向けサービス管理
 
 ```powershell
 # HTTP サーバーをサービスとしてインストール

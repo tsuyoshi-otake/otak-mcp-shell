@@ -6,10 +6,10 @@ const fs = require('fs');
 
 function showHelp() {
   console.log(`
-Otak MCP Filesystem Service Manager
+Otak MCP Shell Service Manager
 
 Usage:
-  otak-mcp-filesystem-service <command> [options]
+  otak-mcp-shell-service <command> [options]
 
 Commands:
   install             Install Windows service
@@ -19,20 +19,20 @@ Commands:
 Options:
   --type, -t          Server type: stdio, http, mcp (default: stdio)
   --dir, -d           Allowed directory path (default: ~/Desktop/Otak)
-  --name, -n          Service name (default: OtakMCPFilesystem)
-  --display           Display name (default: Otak MCP Filesystem Server)
+  --name, -n          Service name (default: OtakMCPShell)
+  --display           Display name (default: Otak MCP Shell Server)
 
 Install Examples:
-  otak-mcp-filesystem-service install
-  otak-mcp-filesystem-service install --type mcp
-  otak-mcp-filesystem-service install -t http
-  otak-mcp-filesystem-service install --dir C:\\Users\\username\\Documents\\MyProject
-  otak-mcp-filesystem-service install -d ~/Desktop/SmileCHAT
-  otak-mcp-filesystem-service install --type mcp --dir C:\\Projects\\MyApp
+  otak-mcp-shell-service install
+  otak-mcp-shell-service install --type mcp
+  otak-mcp-shell-service install -t http
+  otak-mcp-shell-service install --dir C:\\Users\\username\\Documents\\MyProject
+  otak-mcp-shell-service install -d ~/Desktop/SmileCHAT
+  otak-mcp-shell-service install --type mcp --dir C:\\Projects\\MyApp
 
 Uninstall Examples:
-  otak-mcp-filesystem-service uninstall
-  otak-mcp-filesystem-service uninstall --name OtakMCPFilesystemHTTP
+  otak-mcp-shell-service uninstall
+  otak-mcp-shell-service uninstall --name OtakMCPShellHTTP
 `);
 }
 
@@ -73,12 +73,12 @@ function main() {
 
   switch (command) {
     case 'install':
-      console.log('📦 Installing Otak MCP Filesystem Windows Service...');
+      console.log('📦 Installing Otak MCP Shell Windows Service...');
       runScript('install-service.js', options);
       break;
     
     case 'uninstall':
-      console.log('🗑️  Uninstalling Otak MCP Filesystem Windows Service...');
+      console.log('🗑️  Uninstalling Otak MCP Shell Windows Service...');
       runScript('uninstall-service.js', options);
       break;
     

@@ -27,9 +27,9 @@ function loadConfig() {
   const args = process.argv.slice(2);
   let config = {
     allowedDirectory: path.join(os.homedir(), 'Desktop', 'Otak'),
-    serviceName: 'OtakMCPFilesystem',
-    displayName: 'Otak MCP Filesystem Server',
-    description: 'MCP server for secure filesystem operations',
+    serviceName: 'OtakMCPShell',
+    displayName: 'Otak MCP Shell Server',
+    description: 'Windows PowerShell MCP server with system directory protection',
     serverType: 'stdio' // stdio, http, mcp
   };
 
@@ -95,7 +95,7 @@ function getServiceScript(serverType) {
 function main() {
   const config = loadConfig();
   
-  console.log('Installing Otak MCP Filesystem Windows Service...');
+  console.log('Installing Otak MCP Shell Windows Service...');
   console.log('Configuration:', JSON.stringify(config, null, 2));
 
   const serviceScript = getServiceScript(config.serverType);
