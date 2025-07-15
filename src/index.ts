@@ -7,6 +7,67 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
+
+// 設定
+interface Config {
+  allowedDirectory?: string;
+}
+
+// デフォルトディレクトリ
+const DEFAULT_DIR = path.join(os.homedir(), 'Desktop', 'SmileCHAT');
+
+// 許可されたディレクトリ
+let allowedDirectory: string = DEFAULT_DIR;
+
+// パスが許可されたディレクトリ内にあるかチェック
+function isPathAllowed(targetPath: string): boolean {
+  const resolvedPath = path.resolve(targetPath);
+  const resolvedAllowed = path.resolve(allowedDirectory);
+  return resolvedPath.startsWith(resolvedAllowed);
+}
+
+// 安全なパスに変換
+function getSafePath(requestedPath: string): string {
+  // 絶対パスの場合
+  if (path.isAbsolute(requestedPath)) {
+    if (!isPathAllowed(requestedPath)) {
+      throw new Error(`Access denied: Path outside allowed directory (${allowedDirectory})`);
+    }
+    return requestedPath;
+  }
+  
+  // 相対パスの場合は許可されたディレクトリからの相対パスとして解釈
+  const fullPath = path.join(allowedDirectory, requestedPath);
+  if (!isPathAllowed(fullPath)) {
+    throw new Error(`Access denied: Path outside allowed directory (${allowedDirectory})`);
+  }
+  return fullPath;
+}
+
+// 初期化処理
+async function initialize() {
+  // コマンドライン引数から設定を取得
+  const args = process.argv.slice(2);
+  if (args.length > 0) {
+    try {
+      const config: Config = JSON.parse(args[0]);
+      if (config.allowedDirectory) {
+        allowedDirectory = path.resolve(config.allowedDirectory);
+      }
+    } catch (error) {
+      console.error('Invalid configuration:', error);
+    }
+  }
+  
+  // デフォルトディレクトリが存在しない場合は作成
+  try {
+    await fs.mkdir(allowedDirectory, { recursive: true });
+    console.error(`Allowed directory: ${allowedDirectory}`);
+  } catch (error) {
+    console.error('Failed to create directory:', error);
+  }
+}
 
 const server = new Server(
   {
@@ -107,7 +168,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'list_directory': {
-        const dirPath = args.path as string;
+        const dirPath = getSafePath(args.path as string || '.');
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
         const result = await Promise.all(
           entries.map(async (entry) => {
@@ -132,7 +193,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'read_file': {
-        const filePath = args.path as string;
+        const filePath = getSafePath(args.path as string);
         const content = await fs.readFile(filePath, 'utf-8');
         return {
           content: [
@@ -145,7 +206,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'write_file': {
-        const filePath = args.path as string;
+        const filePath = getSafePath(args.path as string);
         const content = args.content as string;
         await fs.writeFile(filePath, content, 'utf-8');
         return {
@@ -159,7 +220,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'create_directory': {
-        const dirPath = args.path as string;
+        const dirPath = getSafePath(args.path as string);
         await fs.mkdir(dirPath, { recursive: true });
         return {
           content: [
@@ -172,7 +233,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_file': {
-        const targetPath = args.path as string;
+        const targetPath = getSafePath(args.path as string);
         const stats = await fs.stat(targetPath);
         if (stats.isDirectory()) {
           await fs.rm(targetPath, { recursive: true, force: true });
@@ -206,6 +267,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
+  await initialize();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('Filesystem MCP server running on stdio');

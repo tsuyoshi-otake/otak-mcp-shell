@@ -2,6 +2,12 @@
 
 ファイルシステム操作をサポートするMCP (Model Context Protocol) サーバーの実装です。SSEとHTTP Streamingに対応しています。
 
+## セキュリティ機能
+
+- **ディレクトリアクセス制限**: 指定されたディレクトリ内のみでファイル操作が可能
+- **デフォルト制限**: 引数なしの場合は `~/Desktop/SmileCHAT` ディレクトリのみアクセス可能
+- **パストラバーサル防止**: `../` などを使った親ディレクトリへのアクセスを防止
+
 ## 機能
 
 ### 基本的なファイルシステム操作
@@ -24,9 +30,34 @@ npm install
 ## 使用方法
 
 ### MCP標準サーバー (stdio)
+
+デフォルト設定（Desktop/SmileCHATのみアクセス可能）:
 ```bash
 npm run dev
 ```
+
+カスタムディレクトリを指定:
+```bash
+npm run dev -- '{"allowedDirectory": "/path/to/allowed/directory"}'
+```
+
+### Claude Desktop設定例
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@tsuyoshi-otake/mcp-filesystem",
+        "{\"allowedDirectory\": \"C:/Users/username/Documents/MyProject\"}"
+      ]
+    }
+  }
+}
+```
+
+引数なしの場合は自動的に `~/Desktop/SmileCHAT` ディレクトリが作成され、そこのみアクセス可能になります。
 
 ### HTTPサーバー（カスタムAPI）
 ```bash
